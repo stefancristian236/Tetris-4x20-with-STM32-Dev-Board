@@ -4,14 +4,16 @@
 #include <string.h>
 
 #define SW_VERSION  11 
-#define clock_period 150 // 100ms      
+#define clock_period 150 
 
 TIM_HandleTypeDef  htim2;
 UART_HandleTypeDef huart1;
 
-uint8_t  uart_buf[1] = {0};   
+uint8_t rx_data;
+char rx_buffer[20];
+uint8_t rx_index = 0;
+volatile uint8_t play_morse_flag = 0;
 
-//facem un soft pwm
 volatile uint8_t pwm_counter = 0;
 volatile uint8_t duty_R = 0;
 volatile uint8_t duty_G = 0;
@@ -22,6 +24,7 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_USART1_UART_Init(void);
 static void MX_TIM2_Init(void);
+void Error_Handler(void);
 
 #ifdef __GNUC__
 #define PUTCHAR_PROTOTYPE  int __io_putchar(int ch)
@@ -40,19 +43,24 @@ int _write(int fd, char *ptr, int len) {
 }
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
-    if (uart_buf[0] != '?') {
-        uart_buf[0]++;
-        HAL_UART_Transmit(&huart1, uart_buf, 1, 10);
-    } else {
-        printf("Sw Version %d.%d\r\n", SW_VERSION / 10, SW_VERSION % 10);
+    if (huart->Instance == USART1) {
+        if (rx_data == '\n' || rx_data == '\r') {
+            rx_buffer[rx_index] = '\0';
+            if (strcmp(rx_buffer, "Morse") == 0) {
+                play_morse_flag = 1;
+            }
+            rx_index = 0;
+        } else {
+            if (rx_index < sizeof(rx_buffer) - 1) {
+                rx_buffer[rx_index++] = (char)rx_data;
+            }
+        }
+        HAL_UART_Receive_IT(&huart1, &rx_data, 1);
     }
-    HAL_UART_Receive_IT(&huart1, uart_buf, 1);   
 }
 
-//isr
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
     if (htim->Instance == TIM2) {
-        
         if (pwm_counter == 0) {
             if (duty_R > 0) HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, GPIO_PIN_SET);
             if (duty_G > 0) HAL_GPIO_WritePin(GPIOB, GPIO_PIN_1, GPIO_PIN_SET);
@@ -87,7 +95,7 @@ Dictionary alphabet[] = {
 typedef struct {
     uint16_t duration;
     uint8_t color_mode;
-}MorseCommand;
+} MorseCommand;
 
 MorseCommand seq[150];
 int sq_len = 0;
@@ -97,7 +105,7 @@ void command(uint16_t dur, uint8_t color) {
     seq[sq_len].color_mode = color;
     sq_len++;
 }
-//logica pentru morse
+
 void morseBlink(const char* str) {
     sq_len = 0;
     for (int i = 0; str[i] != '\0'; ++i) {
@@ -119,7 +127,7 @@ void morseBlink(const char* str) {
         for (int k = 0; code[k] != '\0'; ++k) {
             if (code[k] == '.') {
                 command(clock_period, 1);
-            }else if (code[k] == '-') {
+            } else if (code[k] == '-') {
                 command(3 * clock_period, 2);
             }
 
@@ -155,8 +163,6 @@ void play_loop() {
     duty_B = 34;
 }
 
-
-
 int main(void) {
     HAL_Init();
     SystemClock_Config();
@@ -166,7 +172,6 @@ int main(void) {
     
     MX_TIM2_Init();
 
-    HAL_UART_Receive_IT(&huart1, uart_buf, 1);
     HAL_TIM_Base_Start_IT(&htim2);
 
     printf("Code version %d.%d starting...\r\n", SW_VERSION / 10, SW_VERSION % 10);
@@ -174,10 +179,16 @@ int main(void) {
 
     const char *text = "hello 23";
     morseBlink(text);
-    // main loop
-    //fsr
+
+    HAL_UART_Receive_IT(&huart1, &rx_data, 1);
+
     while (1) {
-        //debouncer
+        if (play_morse_flag == 1) {
+            printf("Playing Morse sequence...\r\n");
+            play_loop();
+            play_morse_flag = 0;
+        }
+
         if (HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_13) == GPIO_PIN_RESET) {
             HAL_Delay(25);
             if (HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_13) == GPIO_PIN_RESET) {
@@ -187,38 +198,30 @@ int main(void) {
                     state = 0;
                 }
 
-                //setare actori de umple si swtich prin code
                 switch (state) {
-                    case 0: //albastru
+                    case 0:
                         duty_R = 0; duty_G = 0; duty_B = 100;
                         break;
-
-                    case 1: //galben
+                    case 1:
                         duty_R = 80; duty_G = 50; duty_B = 0;
                         break;
-
-                    case 2: //magenta
+                    case 2:
                         duty_R = 50; duty_G = 0; duty_B = 50;
                         break;
-
-                    case 3: // stins
+                    case 3:
                         duty_R = 0; duty_G = 0; duty_B = 0;
                         break;
-                    case 4: // morse code
-                        //red pentru dot 1t,  green pentru dash 3t, spatiu 4t 
+                    case 4:
                         play_loop();
                         break;  
-                    break;
                 }
 
-                //tentativa de a printa pe serial monitor
                 printf("R %d%%, G %d%%, B %d%%\r\n", duty_R, duty_G, duty_B);
             }
         }
     }
 }
 
-// configrare ceas
 void SystemClock_Config(void) {
     RCC_OscInitTypeDef RCC_OscInitStruct = {0};
     RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
