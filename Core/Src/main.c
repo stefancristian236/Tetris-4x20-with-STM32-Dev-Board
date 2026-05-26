@@ -194,6 +194,8 @@ int main(void) {
         //daca flag-ul se seteaza facem automat secventa Morse
         if (play_morse_flag == 1) {
             printf("Playing Morse sequence...\r\n");
+            morseBlink("hello 23");
+
             play_loop();
             play_morse_flag = 0;
         }
