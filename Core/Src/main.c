@@ -164,7 +164,9 @@ void play_loop() {
             break;
         break;
         }
-        HAL_Delay(seq[i].duration);
+        for(volatile uint32_t d = 0; d < (seq[i].duration * 1000); d++) {
+    __NOP(); 
+}
     }
     duty_R = 33;
     duty_G = 33;
