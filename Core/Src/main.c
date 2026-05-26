@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 
+//defininre de variabile
 #define SW_VERSION  11 
 #define clock_period 150 
 
@@ -20,6 +21,7 @@ volatile uint8_t duty_G = 0;
 volatile uint8_t duty_B = 100;  
 uint8_t state = 0;         
 
+//definirea de functii prototip
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_USART1_UART_Init(void);
@@ -42,6 +44,7 @@ int _write(int fd, char *ptr, int len) {
     return len;
 }
 
+//citim ce avem in rx, daca e Morse jucan else continuam sa citim
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
     if (huart->Instance == USART1) {
         if (rx_data == '\n' || rx_data == '\r') {
@@ -59,6 +62,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
     }
 }
 
+//pwm citim din TIM2
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
     if (htim->Instance == TIM2) {
         if (pwm_counter == 0) {
@@ -78,6 +82,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
     }
 }
 
+//mimic un hashmap din cpp
 typedef struct {
     char letter;
     const char *code;
@@ -106,6 +111,7 @@ void command(uint16_t dur, uint8_t color) {
     sq_len++;
 }
 
+//explicat mai jos la play_loop()
 void morseBlink(const char* str) {
     sq_len = 0;
     for (int i = 0; str[i] != '\0'; ++i) {
@@ -136,6 +142,8 @@ void morseBlink(const char* str) {
     }
 }
 
+//main loop, face switch intre culorile pentru cod
+//red 1t dot, green 3t dash, spatiu 4t  0 0 0
 void play_loop() {
     for (int i = 0; i < sq_len; ++i) {
         switch (seq[i].color_mode){
@@ -183,12 +191,14 @@ int main(void) {
     HAL_UART_Receive_IT(&huart1, &rx_data, 1);
 
     while (1) {
+        //daca flag-ul se seteaza facem automat secventa Morse
         if (play_morse_flag == 1) {
             printf("Playing Morse sequence...\r\n");
             play_loop();
             play_morse_flag = 0;
         }
 
+        //debouncer
         if (HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_13) == GPIO_PIN_RESET) {
             HAL_Delay(25);
             if (HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_13) == GPIO_PIN_RESET) {
@@ -197,7 +207,7 @@ int main(void) {
                 if (state > 4) {
                     state = 0;
                 }
-
+                //fsm
                 switch (state) {
                     case 0:
                         duty_R = 0; duty_G = 0; duty_B = 100;
@@ -211,7 +221,7 @@ int main(void) {
                     case 3:
                         duty_R = 0; duty_G = 0; duty_B = 0;
                         break;
-                    case 4:
+                    case 4: 
                         play_loop();
                         break;  
                 }
@@ -222,6 +232,7 @@ int main(void) {
     }
 }
 
+//fisiere generare de CubeMX
 void SystemClock_Config(void) {
     RCC_OscInitTypeDef RCC_OscInitStruct = {0};
     RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
