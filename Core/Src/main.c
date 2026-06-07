@@ -19,6 +19,10 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "usb_device.h"
+#include "buttons.h"
+#include "usbd_cdc_if.h" 
+#include <string.h>      
+#include <stdio.h>
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -99,7 +103,7 @@ int main(void)
   MX_TIM2_Init();
   MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
-
+    butt_Init();
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -109,6 +113,30 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+    
+    // A buffer to hold our text messages
+    char serial_msg[64];
+
+    if (read_butt_Left()) {
+        sprintf(serial_msg, "LEFT Button Pressed! \r\n");
+        CDC_Transmit_FS((uint8_t*)serial_msg, strlen(serial_msg));
+    }
+    
+    if (read_butt_Right()) {
+        sprintf(serial_msg, "RIGHT Button Pressed! \r\n");
+        CDC_Transmit_FS((uint8_t*)serial_msg, strlen(serial_msg));
+    }
+    
+    if (read_butt_Rotate()) {
+        sprintf(serial_msg, "ROTATE Button Pressed! \r\n");
+        CDC_Transmit_FS((uint8_t*)serial_msg, strlen(serial_msg));
+    }
+    
+    if (read_butt_Drop()) {
+        sprintf(serial_msg, "DROP Button Pressed! \r\n");
+        CDC_Transmit_FS((uint8_t*)serial_msg, strlen(serial_msg));
+    }
+
   }
   /* USER CODE END 3 */
 }
@@ -317,7 +345,7 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pins : PA1 PA2 PA3 PA4 */
   GPIO_InitStruct.Pin = GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_3|GPIO_PIN_4;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /*Configure GPIO pins : PB0 PB1 */
