@@ -1,4 +1,4 @@
-ARM GAS  C:\Users\crist\AppData\Local\Temp\ccV3H0gB.s 			page 1
+ARM GAS  C:\Users\crist\AppData\Local\Temp\cceLmwfF.s 			page 1
 
 
    1              		.cpu cortex-m3
@@ -18,449 +18,483 @@ ARM GAS  C:\Users\crist\AppData\Local\Temp\ccV3H0gB.s 			page 1
   15              	.Ltext0:
   16              		.cfi_sections	.debug_frame
   17              		.file 1 "Core/Src/buttons.c"
-  18              		.section	.text.butt_Init,"ax",%progbits
+  18              		.section	.text.poll,"ax",%progbits
   19              		.align	1
-  20              		.global	butt_Init
-  21              		.syntax unified
-  22              		.thumb
-  23              		.thumb_func
-  25              	butt_Init:
-  26              	.LFB65:
+  20              		.syntax unified
+  21              		.thumb
+  22              		.thumb_func
+  24              	poll:
+  25              	.LVL0:
+  26              	.LFB66:
    1:Core/Src/buttons.c **** #include "buttons.h"
-   2:Core/Src/buttons.c **** 
-   3:Core/Src/buttons.c **** static uint32_t tick_left = 0;
-   4:Core/Src/buttons.c **** static uint32_t tick_right = 0;
-   5:Core/Src/buttons.c **** static uint32_t rotate = 0;
-   6:Core/Src/buttons.c **** static uint32_t drop = 0;
-   7:Core/Src/buttons.c **** static uint8_t rotate_lock = 0;
-   8:Core/Src/buttons.c **** 
-   9:Core/Src/buttons.c **** void butt_Init(void) {
-  27              		.loc 1 9 22 view -0
+   2:Core/Src/buttons.c **** #include "stm32f1xx_hal.h"
+   3:Core/Src/buttons.c **** #include <stdint.h>
+   4:Core/Src/buttons.c **** 
+   5:Core/Src/buttons.c **** /* ---------------- FSM ---------------- */
+   6:Core/Src/buttons.c **** 
+   7:Core/Src/buttons.c **** typedef enum {
+   8:Core/Src/buttons.c ****     BTN_IDLE,
+   9:Core/Src/buttons.c ****     BTN_DEBOUNCING,
+  10:Core/Src/buttons.c ****     BTN_FIRED
+  11:Core/Src/buttons.c **** } BtnPhase;
+  12:Core/Src/buttons.c **** 
+  13:Core/Src/buttons.c **** typedef struct {
+  14:Core/Src/buttons.c ****     GPIO_TypeDef *port;
+  15:Core/Src/buttons.c ****     uint16_t pin;
+  16:Core/Src/buttons.c ****     BtnPhase phase;
+  17:Core/Src/buttons.c ****     uint32_t t_start;
+  18:Core/Src/buttons.c **** } Btn;
+  19:Core/Src/buttons.c **** 
+  20:Core/Src/buttons.c **** /* ---------------- Buttons ---------------- */
+  21:Core/Src/buttons.c **** 
+  22:Core/Src/buttons.c **** static Btn B[4] =
+  23:Core/Src/buttons.c **** {
+  24:Core/Src/buttons.c ****     { BUTT_LEFT_PORT,   BUTT_LEFT_PIN,   BTN_IDLE, 0 },
+  25:Core/Src/buttons.c ****     { BUTT_RIGHT_PORT,  BUTT_RIGHT_PIN,  BTN_IDLE, 0 },
+  26:Core/Src/buttons.c ****     { BUTT_ROTATE_PORT, BUTT_ROTATE_PIN, BTN_IDLE, 0 },
+  27:Core/Src/buttons.c ****     { BUTT_DROP_PORT,   BUTT_DROP_PIN,   BTN_IDLE, 0 }
+  28:Core/Src/buttons.c **** };
+  29:Core/Src/buttons.c **** 
+  30:Core/Src/buttons.c **** /* ---------------- Init ---------------- */
+  31:Core/Src/buttons.c **** 
+  32:Core/Src/buttons.c **** void butt_Init(void)
+ARM GAS  C:\Users\crist\AppData\Local\Temp\cceLmwfF.s 			page 2
+
+
+  33:Core/Src/buttons.c **** {
+  34:Core/Src/buttons.c ****     for (int i = 0; i < 4; i++)
+  35:Core/Src/buttons.c ****     {
+  36:Core/Src/buttons.c ****         B[i].phase = BTN_IDLE;
+  37:Core/Src/buttons.c ****         B[i].t_start = 0;
+  38:Core/Src/buttons.c ****     }
+  39:Core/Src/buttons.c **** }
+  40:Core/Src/buttons.c **** 
+  41:Core/Src/buttons.c **** /* ---------------- Core Poll ---------------- */
+  42:Core/Src/buttons.c **** 
+  43:Core/Src/buttons.c **** static uint8_t poll(Btn *b)
+  44:Core/Src/buttons.c **** {
+  27              		.loc 1 44 1 view -0
   28              		.cfi_startproc
   29              		@ args = 0, pretend = 0, frame = 0
   30              		@ frame_needed = 0, uses_anonymous_args = 0
-  31              		@ link register save eliminated.
-  10:Core/Src/buttons.c **** 
-  11:Core/Src/buttons.c **** }
-  32              		.loc 1 11 1 view .LVU1
-  33 0000 7047     		bx	lr
-  34              		.cfi_endproc
-  35              	.LFE65:
-  37              		.section	.text.read_butt_Left,"ax",%progbits
-  38              		.align	1
-  39              		.global	read_butt_Left
-  40              		.syntax unified
-  41              		.thumb
-  42              		.thumb_func
-  44              	read_butt_Left:
-  45              	.LFB66:
-  12:Core/Src/buttons.c **** 
-  13:Core/Src/buttons.c **** //buttons set on active low
-  14:Core/Src/buttons.c **** //not press = 0, press = 1
-  15:Core/Src/buttons.c **** //keeps updating the movemen as we hold the button down
-ARM GAS  C:\Users\crist\AppData\Local\Temp\ccV3H0gB.s 			page 2
+  31              		.loc 1 44 1 is_stmt 0 view .LVU1
+  32 0000 38B5     		push	{r3, r4, r5, lr}
+  33              	.LCFI0:
+  34              		.cfi_def_cfa_offset 16
+  35              		.cfi_offset 3, -16
+  36              		.cfi_offset 4, -12
+  37              		.cfi_offset 5, -8
+  38              		.cfi_offset 14, -4
+  45:Core/Src/buttons.c ****     if (b == NULL) return 0;
+  39              		.loc 1 45 5 is_stmt 1 view .LVU2
+  40              		.loc 1 45 8 is_stmt 0 view .LVU3
+  41 0002 10B3     		cbz	r0, .L6
+  42 0004 0546     		mov	r5, r0
+  46:Core/Src/buttons.c **** 
+  47:Core/Src/buttons.c ****     uint8_t pressed = (HAL_GPIO_ReadPin(b->port, b->pin) == GPIO_PIN_RESET);
+  43              		.loc 1 47 5 is_stmt 1 view .LVU4
+  44              		.loc 1 47 24 is_stmt 0 view .LVU5
+  45 0006 8188     		ldrh	r1, [r0, #4]
+  46 0008 0068     		ldr	r0, [r0]
+  47              	.LVL1:
+  48              		.loc 1 47 24 view .LVU6
+  49 000a FFF7FEFF 		bl	HAL_GPIO_ReadPin
+  50              	.LVL2:
+  51 000e 0446     		mov	r4, r0
+  52              	.LVL3:
+  48:Core/Src/buttons.c ****     uint32_t now = HAL_GetTick();
+  53              		.loc 1 48 5 is_stmt 1 view .LVU7
+  54              		.loc 1 48 20 is_stmt 0 view .LVU8
+  55 0010 FFF7FEFF 		bl	HAL_GetTick
+  56              	.LVL4:
+  49:Core/Src/buttons.c **** 
+  50:Core/Src/buttons.c ****     switch (b->phase)
+  57              		.loc 1 50 5 is_stmt 1 view .LVU9
+  58              		.loc 1 50 14 is_stmt 0 view .LVU10
+  59 0014 AB79     		ldrb	r3, [r5, #6]	@ zero_extendqisi2
+  60              		.loc 1 50 5 view .LVU11
+  61 0016 012B     		cmp	r3, #1
+  62 0018 07D0     		beq	.L3
+  63 001a 022B     		cmp	r3, #2
+  64 001c 11D0     		beq	.L4
+  65 001e BBB9     		cbnz	r3, .L7
+ARM GAS  C:\Users\crist\AppData\Local\Temp\cceLmwfF.s 			page 3
 
 
-  16:Core/Src/buttons.c **** uint8_t read_butt_Left(void) {
-  46              		.loc 1 16 30 view -0
-  47              		.cfi_startproc
-  48              		@ args = 0, pretend = 0, frame = 0
-  49              		@ frame_needed = 0, uses_anonymous_args = 0
-  50 0000 08B5     		push	{r3, lr}
-  51              	.LCFI0:
-  52              		.cfi_def_cfa_offset 8
-  53              		.cfi_offset 3, -8
-  54              		.cfi_offset 14, -4
-  17:Core/Src/buttons.c ****     if (HAL_GPIO_ReadPin(BTN_PORT, BTN_LEFT_PIN) == GPIO_PIN_RESET) {
-  55              		.loc 1 17 5 view .LVU3
-  56              		.loc 1 17 9 is_stmt 0 view .LVU4
-  57 0002 0221     		movs	r1, #2
-  58 0004 0848     		ldr	r0, .L6
-  59 0006 FFF7FEFF 		bl	HAL_GPIO_ReadPin
-  60              	.LVL0:
-  61              		.loc 1 17 8 discriminator 1 view .LVU5
-  62 000a 00B1     		cbz	r0, .L5
-  63              	.L2:
-  18:Core/Src/buttons.c ****         if ((HAL_GetTick() - tick_left) > 100) {
-  19:Core/Src/buttons.c ****             tick_left = HAL_GetTick();
-  20:Core/Src/buttons.c ****             return 1;
-  21:Core/Src/buttons.c ****         }
-  22:Core/Src/buttons.c ****     }
-  23:Core/Src/buttons.c **** }
-  64              		.loc 1 23 1 view .LVU6
-  65 000c 08BD     		pop	{r3, pc}
-  66              	.L5:
-  18:Core/Src/buttons.c ****         if ((HAL_GetTick() - tick_left) > 100) {
-  67              		.loc 1 18 9 is_stmt 1 view .LVU7
-  18:Core/Src/buttons.c ****         if ((HAL_GetTick() - tick_left) > 100) {
-  68              		.loc 1 18 14 is_stmt 0 view .LVU8
-  69 000e FFF7FEFF 		bl	HAL_GetTick
-  70              	.LVL1:
-  18:Core/Src/buttons.c ****         if ((HAL_GetTick() - tick_left) > 100) {
-  71              		.loc 1 18 28 discriminator 1 view .LVU9
-  72 0012 064B     		ldr	r3, .L6+4
-  73 0014 1B68     		ldr	r3, [r3]
-  74 0016 C01A     		subs	r0, r0, r3
-  18:Core/Src/buttons.c ****         if ((HAL_GetTick() - tick_left) > 100) {
-  75              		.loc 1 18 12 discriminator 1 view .LVU10
-  76 0018 6428     		cmp	r0, #100
-  77 001a F7D9     		bls	.L2
-  19:Core/Src/buttons.c ****             return 1;
-  78              		.loc 1 19 13 is_stmt 1 view .LVU11
-  19:Core/Src/buttons.c ****             return 1;
-  79              		.loc 1 19 25 is_stmt 0 view .LVU12
-  80 001c FFF7FEFF 		bl	HAL_GetTick
-  81              	.LVL2:
-  19:Core/Src/buttons.c ****             return 1;
-  82              		.loc 1 19 23 discriminator 1 view .LVU13
-  83 0020 024B     		ldr	r3, .L6+4
-  84 0022 1860     		str	r0, [r3]
-  20:Core/Src/buttons.c ****         }
-  85              		.loc 1 20 13 is_stmt 1 view .LVU14
-  20:Core/Src/buttons.c ****         }
-ARM GAS  C:\Users\crist\AppData\Local\Temp\ccV3H0gB.s 			page 3
+  51:Core/Src/buttons.c ****     {
+  52:Core/Src/buttons.c ****         case BTN_IDLE:
+  53:Core/Src/buttons.c ****             if (pressed)
+  66              		.loc 1 53 13 is_stmt 1 view .LVU12
+  67              		.loc 1 53 16 is_stmt 0 view .LVU13
+  68 0020 C4B9     		cbnz	r4, .L8
+  54:Core/Src/buttons.c ****             {
+  55:Core/Src/buttons.c ****                 b->phase = BTN_DEBOUNCING;
+  69              		.loc 1 55 17 is_stmt 1 view .LVU14
+  70              		.loc 1 55 26 is_stmt 0 view .LVU15
+  71 0022 0123     		movs	r3, #1
+  72 0024 AB71     		strb	r3, [r5, #6]
+  56:Core/Src/buttons.c ****                 b->t_start = now;
+  73              		.loc 1 56 17 is_stmt 1 view .LVU16
+  74              		.loc 1 56 28 is_stmt 0 view .LVU17
+  75 0026 A860     		str	r0, [r5, #8]
+  76 0028 10E0     		b	.L2
+  77              	.L3:
+  57:Core/Src/buttons.c ****             }
+  58:Core/Src/buttons.c ****             break;
+  59:Core/Src/buttons.c **** 
+  60:Core/Src/buttons.c ****         case BTN_DEBOUNCING:
+  61:Core/Src/buttons.c ****             if (!pressed)
+  78              		.loc 1 61 13 is_stmt 1 view .LVU18
+  79              		.loc 1 61 16 is_stmt 0 view .LVU19
+  80 002a 14B1     		cbz	r4, .L5
+  62:Core/Src/buttons.c ****             {
+  63:Core/Src/buttons.c ****                 b->phase = BTN_IDLE;
+  81              		.loc 1 63 17 is_stmt 1 view .LVU20
+  82              		.loc 1 63 26 is_stmt 0 view .LVU21
+  83 002c 0024     		movs	r4, #0
+  84              	.LVL5:
+  85              		.loc 1 63 26 view .LVU22
+  86 002e AC71     		strb	r4, [r5, #6]
+  87 0030 0CE0     		b	.L2
+  88              	.LVL6:
+  89              	.L5:
+  64:Core/Src/buttons.c ****             }
+  65:Core/Src/buttons.c ****             else if ((now - b->t_start) >= DEBOUNCE_MS)
+  90              		.loc 1 65 18 is_stmt 1 view .LVU23
+  91              		.loc 1 65 30 is_stmt 0 view .LVU24
+  92 0032 AA68     		ldr	r2, [r5, #8]
+  93              		.loc 1 65 27 view .LVU25
+  94 0034 801A     		subs	r0, r0, r2
+  95              	.LVL7:
+  96              		.loc 1 65 21 view .LVU26
+  97 0036 1328     		cmp	r0, #19
+  98 0038 08D9     		bls	.L2
+  66:Core/Src/buttons.c ****             {
+  67:Core/Src/buttons.c ****                 b->phase = BTN_FIRED;
+  99              		.loc 1 67 17 is_stmt 1 view .LVU27
+ 100              		.loc 1 67 26 is_stmt 0 view .LVU28
+ 101 003a 0222     		movs	r2, #2
+ 102 003c AA71     		strb	r2, [r5, #6]
+  68:Core/Src/buttons.c ****                 return 1;
+ 103              		.loc 1 68 17 is_stmt 1 view .LVU29
+ 104              		.loc 1 68 24 is_stmt 0 view .LVU30
+ARM GAS  C:\Users\crist\AppData\Local\Temp\cceLmwfF.s 			page 4
 
 
-  86              		.loc 1 20 20 is_stmt 0 discriminator 1 view .LVU15
-  87 0024 0120     		movs	r0, #1
-  20:Core/Src/buttons.c ****         }
-  88              		.loc 1 20 20 view .LVU16
-  89 0026 F1E7     		b	.L2
-  90              	.L7:
-  91              		.align	2
-  92              	.L6:
-  93 0028 00080140 		.word	1073809408
-  94 002c 00000000 		.word	tick_left
-  95              		.cfi_endproc
-  96              	.LFE66:
-  98              		.section	.text.read_butt_Right,"ax",%progbits
-  99              		.align	1
- 100              		.global	read_butt_Right
- 101              		.syntax unified
- 102              		.thumb
- 103              		.thumb_func
- 105              	read_butt_Right:
- 106              	.LFB67:
-  24:Core/Src/buttons.c **** 
-  25:Core/Src/buttons.c **** uint8_t read_butt_Right(void) {
- 107              		.loc 1 25 31 is_stmt 1 view -0
- 108              		.cfi_startproc
- 109              		@ args = 0, pretend = 0, frame = 0
- 110              		@ frame_needed = 0, uses_anonymous_args = 0
- 111 0000 08B5     		push	{r3, lr}
- 112              	.LCFI1:
- 113              		.cfi_def_cfa_offset 8
- 114              		.cfi_offset 3, -8
- 115              		.cfi_offset 14, -4
-  26:Core/Src/buttons.c ****     if (HAL_GPIO_ReadPin(BTN_PORT, BTN_RIGHT_PIN) == GPIO_PIN_RESET) {
- 116              		.loc 1 26 5 view .LVU18
- 117              		.loc 1 26 9 is_stmt 0 view .LVU19
- 118 0002 0421     		movs	r1, #4
- 119 0004 0848     		ldr	r0, .L12
- 120 0006 FFF7FEFF 		bl	HAL_GPIO_ReadPin
- 121              	.LVL3:
- 122              		.loc 1 26 8 discriminator 1 view .LVU20
- 123 000a 00B1     		cbz	r0, .L11
- 124              	.L8:
-  27:Core/Src/buttons.c ****         if ((HAL_GetTick() - tick_right) > 100) {
-  28:Core/Src/buttons.c ****             tick_right = HAL_GetTick();
-  29:Core/Src/buttons.c ****             return 1;
-  30:Core/Src/buttons.c ****         }
-  31:Core/Src/buttons.c ****     }
-  32:Core/Src/buttons.c **** }
- 125              		.loc 1 32 1 view .LVU21
- 126 000c 08BD     		pop	{r3, pc}
- 127              	.L11:
-  27:Core/Src/buttons.c ****         if ((HAL_GetTick() - tick_right) > 100) {
- 128              		.loc 1 27 9 is_stmt 1 view .LVU22
-  27:Core/Src/buttons.c ****         if ((HAL_GetTick() - tick_right) > 100) {
- 129              		.loc 1 27 14 is_stmt 0 view .LVU23
- 130 000e FFF7FEFF 		bl	HAL_GetTick
- 131              	.LVL4:
-  27:Core/Src/buttons.c ****         if ((HAL_GetTick() - tick_right) > 100) {
-ARM GAS  C:\Users\crist\AppData\Local\Temp\ccV3H0gB.s 			page 4
+ 105 003e 1C46     		mov	r4, r3
+ 106              	.LVL8:
+ 107              		.loc 1 68 24 view .LVU31
+ 108 0040 04E0     		b	.L2
+ 109              	.LVL9:
+ 110              	.L4:
+  69:Core/Src/buttons.c ****             }
+  70:Core/Src/buttons.c ****             break;
+  71:Core/Src/buttons.c **** 
+  72:Core/Src/buttons.c ****         case BTN_FIRED:
+  73:Core/Src/buttons.c ****             if (!pressed)
+ 111              		.loc 1 73 13 is_stmt 1 view .LVU32
+ 112              		.loc 1 73 16 is_stmt 0 view .LVU33
+ 113 0042 1CB1     		cbz	r4, .L2
+  74:Core/Src/buttons.c ****             {
+  75:Core/Src/buttons.c ****                 b->phase = BTN_IDLE;
+ 114              		.loc 1 75 17 is_stmt 1 view .LVU34
+ 115              		.loc 1 75 26 is_stmt 0 view .LVU35
+ 116 0044 0024     		movs	r4, #0
+ 117              	.LVL10:
+ 118              		.loc 1 75 26 view .LVU36
+ 119 0046 AC71     		strb	r4, [r5, #6]
+ 120 0048 00E0     		b	.L2
+ 121              	.LVL11:
+ 122              	.L6:
+  45:Core/Src/buttons.c **** 
+ 123              		.loc 1 45 27 discriminator 1 view .LVU37
+ 124 004a 0024     		movs	r4, #0
+ 125              	.LVL12:
+ 126              	.L2:
+  76:Core/Src/buttons.c ****             }
+  77:Core/Src/buttons.c ****             break;
+  78:Core/Src/buttons.c ****     }
+  79:Core/Src/buttons.c **** 
+  80:Core/Src/buttons.c ****     return 0;
+  81:Core/Src/buttons.c **** }
+ 127              		.loc 1 81 1 view .LVU38
+ 128 004c 2046     		mov	r0, r4
+ 129 004e 38BD     		pop	{r3, r4, r5, pc}
+ 130              	.LVL13:
+ 131              	.L7:
+  50:Core/Src/buttons.c ****     {
+ 132              		.loc 1 50 5 view .LVU39
+ 133 0050 0024     		movs	r4, #0
+ 134              	.LVL14:
+  50:Core/Src/buttons.c ****     {
+ 135              		.loc 1 50 5 view .LVU40
+ 136 0052 FBE7     		b	.L2
+ 137              	.LVL15:
+ 138              	.L8:
+  80:Core/Src/buttons.c **** }
+ 139              		.loc 1 80 12 view .LVU41
+ 140 0054 1C46     		mov	r4, r3
+ 141              	.LVL16:
+  80:Core/Src/buttons.c **** }
+ 142              		.loc 1 80 12 view .LVU42
+ 143 0056 F9E7     		b	.L2
+ARM GAS  C:\Users\crist\AppData\Local\Temp\cceLmwfF.s 			page 5
 
 
- 132              		.loc 1 27 28 discriminator 1 view .LVU24
- 133 0012 064B     		ldr	r3, .L12+4
- 134 0014 1B68     		ldr	r3, [r3]
- 135 0016 C01A     		subs	r0, r0, r3
-  27:Core/Src/buttons.c ****         if ((HAL_GetTick() - tick_right) > 100) {
- 136              		.loc 1 27 12 discriminator 1 view .LVU25
- 137 0018 6428     		cmp	r0, #100
- 138 001a F7D9     		bls	.L8
-  28:Core/Src/buttons.c ****             return 1;
- 139              		.loc 1 28 13 is_stmt 1 view .LVU26
-  28:Core/Src/buttons.c ****             return 1;
- 140              		.loc 1 28 26 is_stmt 0 view .LVU27
- 141 001c FFF7FEFF 		bl	HAL_GetTick
- 142              	.LVL5:
-  28:Core/Src/buttons.c ****             return 1;
- 143              		.loc 1 28 24 discriminator 1 view .LVU28
- 144 0020 024B     		ldr	r3, .L12+4
- 145 0022 1860     		str	r0, [r3]
-  29:Core/Src/buttons.c ****         }
- 146              		.loc 1 29 13 is_stmt 1 view .LVU29
-  29:Core/Src/buttons.c ****         }
- 147              		.loc 1 29 20 is_stmt 0 discriminator 1 view .LVU30
- 148 0024 0120     		movs	r0, #1
-  29:Core/Src/buttons.c ****         }
- 149              		.loc 1 29 20 view .LVU31
- 150 0026 F1E7     		b	.L8
- 151              	.L13:
- 152              		.align	2
- 153              	.L12:
- 154 0028 00080140 		.word	1073809408
- 155 002c 00000000 		.word	tick_right
- 156              		.cfi_endproc
- 157              	.LFE67:
- 159              		.section	.text.read_butt_Drop,"ax",%progbits
- 160              		.align	1
- 161              		.global	read_butt_Drop
- 162              		.syntax unified
- 163              		.thumb
- 164              		.thumb_func
- 166              	read_butt_Drop:
- 167              	.LFB68:
-  33:Core/Src/buttons.c **** 
-  34:Core/Src/buttons.c **** uint8_t read_butt_Drop(void) {
- 168              		.loc 1 34 30 is_stmt 1 view -0
- 169              		.cfi_startproc
- 170              		@ args = 0, pretend = 0, frame = 0
- 171              		@ frame_needed = 0, uses_anonymous_args = 0
- 172 0000 08B5     		push	{r3, lr}
- 173              	.LCFI2:
- 174              		.cfi_def_cfa_offset 8
- 175              		.cfi_offset 3, -8
- 176              		.cfi_offset 14, -4
-  35:Core/Src/buttons.c ****     if (HAL_GPIO_ReadPin(BTN_PORT, BTN_DROP_PIN) == GPIO_PIN_RESET) {
- 177              		.loc 1 35 5 view .LVU33
- 178              		.loc 1 35 9 is_stmt 0 view .LVU34
- 179 0002 1021     		movs	r1, #16
- 180 0004 0848     		ldr	r0, .L18
-ARM GAS  C:\Users\crist\AppData\Local\Temp\ccV3H0gB.s 			page 5
+ 144              		.cfi_endproc
+ 145              	.LFE66:
+ 147              		.section	.text.butt_Init,"ax",%progbits
+ 148              		.align	1
+ 149              		.global	butt_Init
+ 150              		.syntax unified
+ 151              		.thumb
+ 152              		.thumb_func
+ 154              	butt_Init:
+ 155              	.LFB65:
+  33:Core/Src/buttons.c ****     for (int i = 0; i < 4; i++)
+ 156              		.loc 1 33 1 is_stmt 1 view -0
+ 157              		.cfi_startproc
+ 158              		@ args = 0, pretend = 0, frame = 0
+ 159              		@ frame_needed = 0, uses_anonymous_args = 0
+ 160              		@ link register save eliminated.
+  34:Core/Src/buttons.c ****     {
+ 161              		.loc 1 34 5 view .LVU44
+ 162              	.LBB2:
+  34:Core/Src/buttons.c ****     {
+ 163              		.loc 1 34 10 view .LVU45
+ 164              	.LVL17:
+  34:Core/Src/buttons.c ****     {
+ 165              		.loc 1 34 14 is_stmt 0 view .LVU46
+ 166 0000 0023     		movs	r3, #0
+  34:Core/Src/buttons.c ****     {
+ 167              		.loc 1 34 5 view .LVU47
+ 168 0002 08E0     		b	.L11
+ 169              	.LVL18:
+ 170              	.L12:
+  36:Core/Src/buttons.c ****         B[i].t_start = 0;
+ 171              		.loc 1 36 9 is_stmt 1 view .LVU48
+  36:Core/Src/buttons.c ****         B[i].t_start = 0;
+ 172              		.loc 1 36 20 is_stmt 0 view .LVU49
+ 173 0004 03EB4302 		add	r2, r3, r3, lsl #1
+ 174 0008 9100     		lsls	r1, r2, #2
+ 175 000a 044A     		ldr	r2, .L13
+ 176 000c 0A44     		add	r2, r2, r1
+ 177 000e 0021     		movs	r1, #0
+ 178 0010 9171     		strb	r1, [r2, #6]
+  37:Core/Src/buttons.c ****     }
+ 179              		.loc 1 37 9 is_stmt 1 view .LVU50
+  37:Core/Src/buttons.c ****     }
+ 180              		.loc 1 37 22 is_stmt 0 view .LVU51
+ 181 0012 9160     		str	r1, [r2, #8]
+  34:Core/Src/buttons.c ****     {
+ 182              		.loc 1 34 29 is_stmt 1 discriminator 3 view .LVU52
+ 183 0014 0133     		adds	r3, r3, #1
+ 184              	.LVL19:
+ 185              	.L11:
+  34:Core/Src/buttons.c ****     {
+ 186              		.loc 1 34 23 discriminator 1 view .LVU53
+ 187 0016 032B     		cmp	r3, #3
+ 188 0018 F4DD     		ble	.L12
+ 189              	.LBE2:
+  39:Core/Src/buttons.c **** 
+ 190              		.loc 1 39 1 is_stmt 0 view .LVU54
+ARM GAS  C:\Users\crist\AppData\Local\Temp\cceLmwfF.s 			page 6
 
 
- 181 0006 FFF7FEFF 		bl	HAL_GPIO_ReadPin
- 182              	.LVL6:
- 183              		.loc 1 35 8 discriminator 1 view .LVU35
- 184 000a 00B1     		cbz	r0, .L17
- 185              	.L14:
-  36:Core/Src/buttons.c ****         if ((HAL_GetTick() - drop) > 50) {
-  37:Core/Src/buttons.c ****             drop = HAL_GetTick();
-  38:Core/Src/buttons.c ****             return 1;
-  39:Core/Src/buttons.c ****         }
-  40:Core/Src/buttons.c ****     }
-  41:Core/Src/buttons.c **** }
- 186              		.loc 1 41 1 view .LVU36
- 187 000c 08BD     		pop	{r3, pc}
- 188              	.L17:
-  36:Core/Src/buttons.c ****         if ((HAL_GetTick() - drop) > 50) {
- 189              		.loc 1 36 9 is_stmt 1 view .LVU37
-  36:Core/Src/buttons.c ****         if ((HAL_GetTick() - drop) > 50) {
- 190              		.loc 1 36 14 is_stmt 0 view .LVU38
- 191 000e FFF7FEFF 		bl	HAL_GetTick
- 192              	.LVL7:
-  36:Core/Src/buttons.c ****         if ((HAL_GetTick() - drop) > 50) {
- 193              		.loc 1 36 28 discriminator 1 view .LVU39
- 194 0012 064B     		ldr	r3, .L18+4
- 195 0014 1B68     		ldr	r3, [r3]
- 196 0016 C01A     		subs	r0, r0, r3
-  36:Core/Src/buttons.c ****         if ((HAL_GetTick() - drop) > 50) {
- 197              		.loc 1 36 12 discriminator 1 view .LVU40
- 198 0018 3228     		cmp	r0, #50
- 199 001a F7D9     		bls	.L14
-  37:Core/Src/buttons.c ****             return 1;
- 200              		.loc 1 37 13 is_stmt 1 view .LVU41
-  37:Core/Src/buttons.c ****             return 1;
- 201              		.loc 1 37 20 is_stmt 0 view .LVU42
- 202 001c FFF7FEFF 		bl	HAL_GetTick
- 203              	.LVL8:
-  37:Core/Src/buttons.c ****             return 1;
- 204              		.loc 1 37 18 discriminator 1 view .LVU43
- 205 0020 024B     		ldr	r3, .L18+4
- 206 0022 1860     		str	r0, [r3]
-  38:Core/Src/buttons.c ****         }
- 207              		.loc 1 38 13 is_stmt 1 view .LVU44
-  38:Core/Src/buttons.c ****         }
- 208              		.loc 1 38 20 is_stmt 0 discriminator 1 view .LVU45
- 209 0024 0120     		movs	r0, #1
-  38:Core/Src/buttons.c ****         }
- 210              		.loc 1 38 20 view .LVU46
- 211 0026 F1E7     		b	.L14
- 212              	.L19:
- 213              		.align	2
- 214              	.L18:
- 215 0028 00080140 		.word	1073809408
- 216 002c 00000000 		.word	drop
- 217              		.cfi_endproc
- 218              	.LFE68:
- 220              		.section	.text.read_butt_Rotate,"ax",%progbits
- 221              		.align	1
- 222              		.global	read_butt_Rotate
-ARM GAS  C:\Users\crist\AppData\Local\Temp\ccV3H0gB.s 			page 6
+ 191 001a 7047     		bx	lr
+ 192              	.L14:
+ 193              		.align	2
+ 194              	.L13:
+ 195 001c 00000000 		.word	B
+ 196              		.cfi_endproc
+ 197              	.LFE65:
+ 199              		.section	.text.read_butt_Left,"ax",%progbits
+ 200              		.align	1
+ 201              		.global	read_butt_Left
+ 202              		.syntax unified
+ 203              		.thumb
+ 204              		.thumb_func
+ 206              	read_butt_Left:
+ 207              	.LFB67:
+  82:Core/Src/buttons.c **** 
+  83:Core/Src/buttons.c **** /* ---------------- Public API ---------------- */
+  84:Core/Src/buttons.c **** 
+  85:Core/Src/buttons.c **** uint8_t read_butt_Left(void)   { return poll(&B[0]); }
+ 208              		.loc 1 85 32 is_stmt 1 view -0
+ 209              		.cfi_startproc
+ 210              		@ args = 0, pretend = 0, frame = 0
+ 211              		@ frame_needed = 0, uses_anonymous_args = 0
+ 212 0000 08B5     		push	{r3, lr}
+ 213              	.LCFI1:
+ 214              		.cfi_def_cfa_offset 8
+ 215              		.cfi_offset 3, -8
+ 216              		.cfi_offset 14, -4
+ 217              		.loc 1 85 34 view .LVU56
+ 218              		.loc 1 85 41 is_stmt 0 view .LVU57
+ 219 0002 0248     		ldr	r0, .L17
+ 220 0004 FFF7FEFF 		bl	poll
+ 221              	.LVL20:
+ 222              		.loc 1 85 54 view .LVU58
+ 223 0008 08BD     		pop	{r3, pc}
+ 224              	.L18:
+ 225 000a 00BF     		.align	2
+ 226              	.L17:
+ 227 000c 00000000 		.word	B
+ 228              		.cfi_endproc
+ 229              	.LFE67:
+ 231              		.section	.text.read_butt_Right,"ax",%progbits
+ 232              		.align	1
+ 233              		.global	read_butt_Right
+ 234              		.syntax unified
+ 235              		.thumb
+ 236              		.thumb_func
+ 238              	read_butt_Right:
+ 239              	.LFB68:
+  86:Core/Src/buttons.c **** uint8_t read_butt_Right(void)  { return poll(&B[1]); }
+ 240              		.loc 1 86 32 is_stmt 1 view -0
+ 241              		.cfi_startproc
+ 242              		@ args = 0, pretend = 0, frame = 0
+ 243              		@ frame_needed = 0, uses_anonymous_args = 0
+ 244 0000 08B5     		push	{r3, lr}
+ 245              	.LCFI2:
+ 246              		.cfi_def_cfa_offset 8
+ARM GAS  C:\Users\crist\AppData\Local\Temp\cceLmwfF.s 			page 7
 
 
- 223              		.syntax unified
- 224              		.thumb
- 225              		.thumb_func
- 227              	read_butt_Rotate:
- 228              	.LFB69:
-  42:Core/Src/buttons.c **** 
-  43:Core/Src/buttons.c **** //single push button
-  44:Core/Src/buttons.c **** //no need to continue the movement while is being pressed
-  45:Core/Src/buttons.c **** uint8_t read_butt_Rotate(void) {
- 229              		.loc 1 45 32 is_stmt 1 view -0
- 230              		.cfi_startproc
- 231              		@ args = 0, pretend = 0, frame = 0
- 232              		@ frame_needed = 0, uses_anonymous_args = 0
- 233 0000 10B5     		push	{r4, lr}
- 234              	.LCFI3:
- 235              		.cfi_def_cfa_offset 8
- 236              		.cfi_offset 4, -8
- 237              		.cfi_offset 14, -4
-  46:Core/Src/buttons.c ****     if (HAL_GPIO_ReadPin(BTN_PORT, BTN_ROTATE_PIN) == GPIO_PIN_RESET) {
- 238              		.loc 1 46 5 view .LVU48
- 239              		.loc 1 46 9 is_stmt 0 view .LVU49
- 240 0002 0821     		movs	r1, #8
- 241 0004 0E48     		ldr	r0, .L26
- 242 0006 FFF7FEFF 		bl	HAL_GPIO_ReadPin
- 243              	.LVL9:
- 244              		.loc 1 46 8 discriminator 1 view .LVU50
- 245 000a A0B9     		cbnz	r0, .L21
-  47:Core/Src/buttons.c ****         if (!rotate_lock && (HAL_GetTick() - rotate) > 50) {
- 246              		.loc 1 47 9 is_stmt 1 view .LVU51
- 247              		.loc 1 47 13 is_stmt 0 view .LVU52
- 248 000c 0D4B     		ldr	r3, .L26+4
- 249 000e 1C78     		ldrb	r4, [r3]	@ zero_extendqisi2
- 250              		.loc 1 47 12 view .LVU53
- 251 0010 A4B9     		cbnz	r4, .L22
- 252              		.loc 1 47 30 discriminator 1 view .LVU54
- 253 0012 FFF7FEFF 		bl	HAL_GetTick
- 254              	.LVL10:
- 255              		.loc 1 47 44 discriminator 1 view .LVU55
- 256 0016 0C4B     		ldr	r3, .L26+8
- 257 0018 1B68     		ldr	r3, [r3]
- 258 001a C01A     		subs	r0, r0, r3
- 259              		.loc 1 47 26 discriminator 1 view .LVU56
- 260 001c 3228     		cmp	r0, #50
- 261 001e 01D8     		bhi	.L25
-  48:Core/Src/buttons.c ****             rotate_lock = 1;
-  49:Core/Src/buttons.c ****             rotate = HAL_GetTick();
-  50:Core/Src/buttons.c ****             return 1;
-  51:Core/Src/buttons.c ****         }
-  52:Core/Src/buttons.c ****     } else {
-  53:Core/Src/buttons.c ****         rotate_lock = 0;
-  54:Core/Src/buttons.c ****     }
-  55:Core/Src/buttons.c ****     return 0;
- 262              		.loc 1 55 12 view .LVU57
- 263 0020 2046     		mov	r0, r4
- 264 0022 0BE0     		b	.L22
- 265              	.L25:
-  48:Core/Src/buttons.c ****             rotate_lock = 1;
-ARM GAS  C:\Users\crist\AppData\Local\Temp\ccV3H0gB.s 			page 7
+ 247              		.cfi_offset 3, -8
+ 248              		.cfi_offset 14, -4
+ 249              		.loc 1 86 34 view .LVU60
+ 250              		.loc 1 86 41 is_stmt 0 view .LVU61
+ 251 0002 0248     		ldr	r0, .L21
+ 252 0004 FFF7FEFF 		bl	poll
+ 253              	.LVL21:
+ 254              		.loc 1 86 54 view .LVU62
+ 255 0008 08BD     		pop	{r3, pc}
+ 256              	.L22:
+ 257 000a 00BF     		.align	2
+ 258              	.L21:
+ 259 000c 0C000000 		.word	B+12
+ 260              		.cfi_endproc
+ 261              	.LFE68:
+ 263              		.section	.text.read_butt_Rotate,"ax",%progbits
+ 264              		.align	1
+ 265              		.global	read_butt_Rotate
+ 266              		.syntax unified
+ 267              		.thumb
+ 268              		.thumb_func
+ 270              	read_butt_Rotate:
+ 271              	.LFB69:
+  87:Core/Src/buttons.c **** uint8_t read_butt_Rotate(void) { return poll(&B[2]); }
+ 272              		.loc 1 87 32 is_stmt 1 view -0
+ 273              		.cfi_startproc
+ 274              		@ args = 0, pretend = 0, frame = 0
+ 275              		@ frame_needed = 0, uses_anonymous_args = 0
+ 276 0000 08B5     		push	{r3, lr}
+ 277              	.LCFI3:
+ 278              		.cfi_def_cfa_offset 8
+ 279              		.cfi_offset 3, -8
+ 280              		.cfi_offset 14, -4
+ 281              		.loc 1 87 34 view .LVU64
+ 282              		.loc 1 87 41 is_stmt 0 view .LVU65
+ 283 0002 0248     		ldr	r0, .L25
+ 284 0004 FFF7FEFF 		bl	poll
+ 285              	.LVL22:
+ 286              		.loc 1 87 54 view .LVU66
+ 287 0008 08BD     		pop	{r3, pc}
+ 288              	.L26:
+ 289 000a 00BF     		.align	2
+ 290              	.L25:
+ 291 000c 18000000 		.word	B+24
+ 292              		.cfi_endproc
+ 293              	.LFE69:
+ 295              		.section	.text.read_butt_Drop,"ax",%progbits
+ 296              		.align	1
+ 297              		.global	read_butt_Drop
+ 298              		.syntax unified
+ 299              		.thumb
+ 300              		.thumb_func
+ 302              	read_butt_Drop:
+ 303              	.LFB70:
+  88:Core/Src/buttons.c **** uint8_t read_butt_Drop(void)   { return poll(&B[3]); }...
+ 304              		.loc 1 88 32 is_stmt 1 view -0
+ 305              		.cfi_startproc
+ARM GAS  C:\Users\crist\AppData\Local\Temp\cceLmwfF.s 			page 8
 
 
- 266              		.loc 1 48 13 is_stmt 1 view .LVU58
-  48:Core/Src/buttons.c ****             rotate_lock = 1;
- 267              		.loc 1 48 25 is_stmt 0 view .LVU59
- 268 0024 0124     		movs	r4, #1
- 269 0026 074B     		ldr	r3, .L26+4
- 270 0028 1C70     		strb	r4, [r3]
-  49:Core/Src/buttons.c ****             return 1;
- 271              		.loc 1 49 13 is_stmt 1 view .LVU60
-  49:Core/Src/buttons.c ****             return 1;
- 272              		.loc 1 49 22 is_stmt 0 view .LVU61
- 273 002a FFF7FEFF 		bl	HAL_GetTick
- 274              	.LVL11:
-  49:Core/Src/buttons.c ****             return 1;
- 275              		.loc 1 49 20 discriminator 1 view .LVU62
- 276 002e 064B     		ldr	r3, .L26+8
- 277 0030 1860     		str	r0, [r3]
-  50:Core/Src/buttons.c ****         }
- 278              		.loc 1 50 13 is_stmt 1 view .LVU63
-  50:Core/Src/buttons.c ****         }
- 279              		.loc 1 50 20 is_stmt 0 view .LVU64
- 280 0032 2046     		mov	r0, r4
- 281 0034 02E0     		b	.L22
- 282              	.L21:
-  53:Core/Src/buttons.c ****     }
- 283              		.loc 1 53 9 is_stmt 1 view .LVU65
-  53:Core/Src/buttons.c ****     }
- 284              		.loc 1 53 21 is_stmt 0 view .LVU66
- 285 0036 0020     		movs	r0, #0
- 286 0038 024B     		ldr	r3, .L26+4
- 287 003a 1870     		strb	r0, [r3]
- 288              	.L22:
-  56:Core/Src/buttons.c **** }...
- 289              		.loc 1 56 1 view .LVU67
- 290 003c 10BD     		pop	{r4, pc}
- 291              	.L27:
- 292 003e 00BF     		.align	2
- 293              	.L26:
- 294 0040 00080140 		.word	1073809408
- 295 0044 00000000 		.word	rotate_lock
- 296 0048 00000000 		.word	rotate
- 297              		.cfi_endproc
- 298              	.LFE69:
- 300              		.section	.bss.rotate_lock,"aw",%nobits
- 303              	rotate_lock:
- 304 0000 00       		.space	1
- 305              		.section	.bss.drop,"aw",%nobits
- 306              		.align	2
- 309              	drop:
- 310 0000 00000000 		.space	4
- 311              		.section	.bss.rotate,"aw",%nobits
- 312              		.align	2
- 315              	rotate:
- 316 0000 00000000 		.space	4
- 317              		.section	.bss.tick_right,"aw",%nobits
- 318              		.align	2
- 321              	tick_right:
- 322 0000 00000000 		.space	4
-ARM GAS  C:\Users\crist\AppData\Local\Temp\ccV3H0gB.s 			page 8
-
-
- 323              		.section	.bss.tick_left,"aw",%nobits
- 324              		.align	2
- 327              	tick_left:
- 328 0000 00000000 		.space	4
- 329              		.text
- 330              	.Letext0:
- 331              		.file 2 "C:\\ST\\STM32CubeCLT_1.21.0\\GNU-tools-for-STM32\\bin\\../lib/gcc/arm-none-eabi/14.3.1/..
- 332              		.file 3 "C:\\ST\\STM32CubeCLT_1.21.0\\GNU-tools-for-STM32\\bin\\../lib/gcc/arm-none-eabi/14.3.1/..
- 333              		.file 4 "Drivers/CMSIS/Device/ST/STM32F1xx/Include/stm32f103xb.h"
- 334              		.file 5 "Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_gpio.h"
- 335              		.file 6 "Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal.h"
-ARM GAS  C:\Users\crist\AppData\Local\Temp\ccV3H0gB.s 			page 9
+ 306              		@ args = 0, pretend = 0, frame = 0
+ 307              		@ frame_needed = 0, uses_anonymous_args = 0
+ 308 0000 08B5     		push	{r3, lr}
+ 309              	.LCFI4:
+ 310              		.cfi_def_cfa_offset 8
+ 311              		.cfi_offset 3, -8
+ 312              		.cfi_offset 14, -4
+ 313              		.loc 1 88 34 view .LVU68
+ 314              		.loc 1 88 41 is_stmt 0 view .LVU69
+ 315 0002 0248     		ldr	r0, .L29
+ 316 0004 FFF7FEFF 		bl	poll
+ 317              	.LVL23:
+ 318              		.loc 1 88 54 view .LVU70
+ 319 0008 08BD     		pop	{r3, pc}
+ 320              	.L30:
+ 321 000a 00BF     		.align	2
+ 322              	.L29:
+ 323 000c 24000000 		.word	B+36
+ 324              		.cfi_endproc
+ 325              	.LFE70:
+ 327              		.section	.data.B,"aw"
+ 328              		.align	2
+ 331              	B:
+ 332 0000 00080140 		.word	1073809408
+ 333 0004 0200     		.short	2
+ 334 0006 00       		.byte	0
+ 335 0007 00       		.space	1
+ 336 0008 00000000 		.word	0
+ 337 000c 00080140 		.word	1073809408
+ 338 0010 0400     		.short	4
+ 339 0012 00       		.byte	0
+ 340 0013 00       		.space	1
+ 341 0014 00000000 		.word	0
+ 342 0018 00080140 		.word	1073809408
+ 343 001c 0800     		.short	8
+ 344 001e 00       		.byte	0
+ 345 001f 00       		.space	1
+ 346 0020 00000000 		.word	0
+ 347 0024 00080140 		.word	1073809408
+ 348 0028 1000     		.short	16
+ 349 002a 00       		.byte	0
+ 350 002b 00       		.space	1
+ 351 002c 00000000 		.word	0
+ 352              		.text
+ 353              	.Letext0:
+ 354              		.file 2 "C:\\ST\\STM32CubeCLT_1.21.0\\GNU-tools-for-STM32\\bin\\../lib/gcc/arm-none-eabi/14.3.1/..
+ 355              		.file 3 "C:\\ST\\STM32CubeCLT_1.21.0\\GNU-tools-for-STM32\\bin\\../lib/gcc/arm-none-eabi/14.3.1/..
+ 356              		.file 4 "Drivers/CMSIS/Device/ST/STM32F1xx/Include/stm32f103xb.h"
+ 357              		.file 5 "Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_gpio.h"
+ 358              		.file 6 "Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal.h"
+ARM GAS  C:\Users\crist\AppData\Local\Temp\cceLmwfF.s 			page 9
 
 
 DEFINED SYMBOLS
                             *ABS*:00000000 buttons.c
-C:\Users\crist\AppData\Local\Temp\ccV3H0gB.s:19     .text.butt_Init:00000000 $t
-C:\Users\crist\AppData\Local\Temp\ccV3H0gB.s:25     .text.butt_Init:00000000 butt_Init
-C:\Users\crist\AppData\Local\Temp\ccV3H0gB.s:38     .text.read_butt_Left:00000000 $t
-C:\Users\crist\AppData\Local\Temp\ccV3H0gB.s:44     .text.read_butt_Left:00000000 read_butt_Left
-C:\Users\crist\AppData\Local\Temp\ccV3H0gB.s:93     .text.read_butt_Left:00000028 $d
-C:\Users\crist\AppData\Local\Temp\ccV3H0gB.s:327    .bss.tick_left:00000000 tick_left
-C:\Users\crist\AppData\Local\Temp\ccV3H0gB.s:99     .text.read_butt_Right:00000000 $t
-C:\Users\crist\AppData\Local\Temp\ccV3H0gB.s:105    .text.read_butt_Right:00000000 read_butt_Right
-C:\Users\crist\AppData\Local\Temp\ccV3H0gB.s:154    .text.read_butt_Right:00000028 $d
-C:\Users\crist\AppData\Local\Temp\ccV3H0gB.s:321    .bss.tick_right:00000000 tick_right
-C:\Users\crist\AppData\Local\Temp\ccV3H0gB.s:160    .text.read_butt_Drop:00000000 $t
-C:\Users\crist\AppData\Local\Temp\ccV3H0gB.s:166    .text.read_butt_Drop:00000000 read_butt_Drop
-C:\Users\crist\AppData\Local\Temp\ccV3H0gB.s:215    .text.read_butt_Drop:00000028 $d
-C:\Users\crist\AppData\Local\Temp\ccV3H0gB.s:309    .bss.drop:00000000 drop
-C:\Users\crist\AppData\Local\Temp\ccV3H0gB.s:221    .text.read_butt_Rotate:00000000 $t
-C:\Users\crist\AppData\Local\Temp\ccV3H0gB.s:227    .text.read_butt_Rotate:00000000 read_butt_Rotate
-C:\Users\crist\AppData\Local\Temp\ccV3H0gB.s:294    .text.read_butt_Rotate:00000040 $d
-C:\Users\crist\AppData\Local\Temp\ccV3H0gB.s:303    .bss.rotate_lock:00000000 rotate_lock
-C:\Users\crist\AppData\Local\Temp\ccV3H0gB.s:315    .bss.rotate:00000000 rotate
-C:\Users\crist\AppData\Local\Temp\ccV3H0gB.s:304    .bss.rotate_lock:00000000 $d
-C:\Users\crist\AppData\Local\Temp\ccV3H0gB.s:306    .bss.drop:00000000 $d
-C:\Users\crist\AppData\Local\Temp\ccV3H0gB.s:312    .bss.rotate:00000000 $d
-C:\Users\crist\AppData\Local\Temp\ccV3H0gB.s:318    .bss.tick_right:00000000 $d
-C:\Users\crist\AppData\Local\Temp\ccV3H0gB.s:324    .bss.tick_left:00000000 $d
+C:\Users\crist\AppData\Local\Temp\cceLmwfF.s:19     .text.poll:00000000 $t
+C:\Users\crist\AppData\Local\Temp\cceLmwfF.s:24     .text.poll:00000000 poll
+C:\Users\crist\AppData\Local\Temp\cceLmwfF.s:148    .text.butt_Init:00000000 $t
+C:\Users\crist\AppData\Local\Temp\cceLmwfF.s:154    .text.butt_Init:00000000 butt_Init
+C:\Users\crist\AppData\Local\Temp\cceLmwfF.s:195    .text.butt_Init:0000001c $d
+C:\Users\crist\AppData\Local\Temp\cceLmwfF.s:331    .data.B:00000000 B
+C:\Users\crist\AppData\Local\Temp\cceLmwfF.s:200    .text.read_butt_Left:00000000 $t
+C:\Users\crist\AppData\Local\Temp\cceLmwfF.s:206    .text.read_butt_Left:00000000 read_butt_Left
+C:\Users\crist\AppData\Local\Temp\cceLmwfF.s:227    .text.read_butt_Left:0000000c $d
+C:\Users\crist\AppData\Local\Temp\cceLmwfF.s:232    .text.read_butt_Right:00000000 $t
+C:\Users\crist\AppData\Local\Temp\cceLmwfF.s:238    .text.read_butt_Right:00000000 read_butt_Right
+C:\Users\crist\AppData\Local\Temp\cceLmwfF.s:259    .text.read_butt_Right:0000000c $d
+C:\Users\crist\AppData\Local\Temp\cceLmwfF.s:264    .text.read_butt_Rotate:00000000 $t
+C:\Users\crist\AppData\Local\Temp\cceLmwfF.s:270    .text.read_butt_Rotate:00000000 read_butt_Rotate
+C:\Users\crist\AppData\Local\Temp\cceLmwfF.s:291    .text.read_butt_Rotate:0000000c $d
+C:\Users\crist\AppData\Local\Temp\cceLmwfF.s:296    .text.read_butt_Drop:00000000 $t
+C:\Users\crist\AppData\Local\Temp\cceLmwfF.s:302    .text.read_butt_Drop:00000000 read_butt_Drop
+C:\Users\crist\AppData\Local\Temp\cceLmwfF.s:323    .text.read_butt_Drop:0000000c $d
+C:\Users\crist\AppData\Local\Temp\cceLmwfF.s:328    .data.B:00000000 $d
 
 UNDEFINED SYMBOLS
 HAL_GPIO_ReadPin

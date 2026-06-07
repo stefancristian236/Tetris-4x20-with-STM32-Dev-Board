@@ -1,56 +1,88 @@
 #include "buttons.h"
+#include "stm32f1xx_hal.h"
+#include <stdint.h>
 
-static uint32_t tick_left = 0;
-static uint32_t tick_right = 0;
-static uint32_t rotate = 0;
-static uint32_t drop = 0;
-static uint8_t rotate_lock = 0;
+/* ---------------- FSM ---------------- */
 
-void butt_Init(void) {
+typedef enum {
+    BTN_IDLE,
+    BTN_DEBOUNCING,
+    BTN_FIRED
+} BtnPhase;
 
-}
+typedef struct {
+    GPIO_TypeDef *port;
+    uint16_t pin;
+    BtnPhase phase;
+    uint32_t t_start;
+} Btn;
 
-//buttons set on active low
-//not press = 0, press = 1
-//keeps updating the movemen as we hold the button down
-uint8_t read_butt_Left(void) {
-    if (HAL_GPIO_ReadPin(BTN_PORT, BTN_LEFT_PIN) == GPIO_PIN_RESET) {
-        if ((HAL_GetTick() - tick_left) > 100) {
-            tick_left = HAL_GetTick();
-            return 1;
-        }
+/* ---------------- Buttons ---------------- */
+
+static Btn B[4] =
+{
+    { BUTT_LEFT_PORT,   BUTT_LEFT_PIN,   BTN_IDLE, 0 },
+    { BUTT_RIGHT_PORT,  BUTT_RIGHT_PIN,  BTN_IDLE, 0 },
+    { BUTT_ROTATE_PORT, BUTT_ROTATE_PIN, BTN_IDLE, 0 },
+    { BUTT_DROP_PORT,   BUTT_DROP_PIN,   BTN_IDLE, 0 }
+};
+
+/* ---------------- Init ---------------- */
+
+void butt_Init(void)
+{
+    for (int i = 0; i < 4; i++)
+    {
+        B[i].phase = BTN_IDLE;
+        B[i].t_start = 0;
     }
 }
 
-uint8_t read_butt_Right(void) {
-    if (HAL_GPIO_ReadPin(BTN_PORT, BTN_RIGHT_PIN) == GPIO_PIN_RESET) {
-        if ((HAL_GetTick() - tick_right) > 100) {
-            tick_right = HAL_GetTick();
-            return 1;
-        }
-    }
-}
+/* ---------------- Core Poll ---------------- */
 
-uint8_t read_butt_Drop(void) {
-    if (HAL_GPIO_ReadPin(BTN_PORT, BTN_DROP_PIN) == GPIO_PIN_RESET) {
-        if ((HAL_GetTick() - drop) > 50) {
-            drop = HAL_GetTick();
-            return 1;
-        }
-    }
-}
+static uint8_t poll(Btn *b)
+{
+    if (b == NULL) return 0;
 
-//single push button
-//no need to continue the movement while is being pressed
-uint8_t read_butt_Rotate(void) {
-    if (HAL_GPIO_ReadPin(BTN_PORT, BTN_ROTATE_PIN) == GPIO_PIN_RESET) {
-        if (!rotate_lock && (HAL_GetTick() - rotate) > 50) {
-            rotate_lock = 1;
-            rotate = HAL_GetTick();
-            return 1;
-        }
-    } else {
-        rotate_lock = 0;
+    uint8_t pressed = (HAL_GPIO_ReadPin(b->port, b->pin) == GPIO_PIN_RESET);
+    uint32_t now = HAL_GetTick();
+
+    switch (b->phase)
+    {
+        case BTN_IDLE:
+            if (pressed)
+            {
+                b->phase = BTN_DEBOUNCING;
+                b->t_start = now;
+            }
+            break;
+
+        case BTN_DEBOUNCING:
+            if (!pressed)
+            {
+                b->phase = BTN_IDLE;
+            }
+            else if ((now - b->t_start) >= DEBOUNCE_MS)
+            {
+                b->phase = BTN_FIRED;
+                return 1;
+            }
+            break;
+
+        case BTN_FIRED:
+            if (!pressed)
+            {
+                b->phase = BTN_IDLE;
+            }
+            break;
     }
+
     return 0;
 }
+
+/* ---------------- Public API ---------------- */
+
+uint8_t read_butt_Left(void)   { return poll(&B[0]); }
+uint8_t read_butt_Right(void)  { return poll(&B[1]); }
+uint8_t read_butt_Rotate(void) { return poll(&B[2]); }
+uint8_t read_butt_Drop(void)   { return poll(&B[3]); }

@@ -1,19 +1,31 @@
 #ifndef BUTTONS_H
 #define BUTTONS_H
 
-#include <stm32f1xx_hal.h>
+#include "stm32f1xx_hal.h"
 #include <stdint.h>
 
-#define BTN_PORT GPIOA
-#define BTN_LEFT_PIN GPIO_PIN_1
-#define BTN_RIGHT_PIN GPIO_PIN_2
-#define BTN_ROTATE_PIN GPIO_PIN_3
-#define BTN_DROP_PIN GPIO_PIN_4
+/* ---------------- PIN MAP ---------------- */
+#define BUTT_LEFT_PORT    GPIOA
+#define BUTT_LEFT_PIN     GPIO_PIN_1
 
+#define BUTT_RIGHT_PORT   GPIOA
+#define BUTT_RIGHT_PIN    GPIO_PIN_2
+
+#define BUTT_ROTATE_PORT  GPIOA
+#define BUTT_ROTATE_PIN   GPIO_PIN_3
+
+#define BUTT_DROP_PORT    GPIOA
+#define BUTT_DROP_PIN     GPIO_PIN_4
+
+/* ---------------- DEBOUNCE ---------------- */
+#define DEBOUNCE_MS 20U
+
+/* ---------------- API ---------------- */
 void butt_Init(void);
+
 uint8_t read_butt_Left(void);
-uint8_t read_butt_Rotate(void);
 uint8_t read_butt_Right(void);
+uint8_t read_butt_Rotate(void);
 uint8_t read_butt_Drop(void);
 
 #endif
