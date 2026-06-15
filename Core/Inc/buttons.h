@@ -4,7 +4,6 @@
 #include "stm32f1xx_hal.h"
 #include <stdint.h>
 
-/* ---------------- PIN MAP ---------------- */
 #define BUTT_LEFT_PORT    GPIOA
 #define BUTT_LEFT_PIN     GPIO_PIN_1
 
@@ -17,10 +16,8 @@
 #define BUTT_DROP_PORT    GPIOA
 #define BUTT_DROP_PIN     GPIO_PIN_4
 
-/* ---------------- DEBOUNCE ---------------- */
 #define DEBOUNCE_MS 20U
 
-/* ---------------- API ---------------- */
 void butt_Init(void);
 
 uint8_t read_butt_Left(void);

@@ -12,27 +12,17 @@
 #include <string.h>
 #include <stdio.h>
 
-/* Private variables ---------------------------------------------------------*/
 I2C_HandleTypeDef hi2c1;
 TIM_HandleTypeDef htim2;
 UART_HandleTypeDef huart1;
 
-/* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_USART1_UART_Init(void);
 static void MX_TIM2_Init(void);
 static void MX_I2C1_Init(void);
 
-/* USER CODE BEGIN 0 */
 
-/*
- * CDC_Send — wraps CDC_Transmit_FS with a short busy-retry.
- *
- * The USB stack keeps an internal TX buffer.  If a previous transfer is still
- * in flight, CDC_Transmit_FS returns USBD_BUSY.  We retry for up to 10 ms
- * before giving up so we never block the main loop for long.
- */
 static void UART_Send(const char *msg)
 {
     HAL_UART_Transmit(&huart1,
@@ -40,11 +30,9 @@ static void UART_Send(const char *msg)
                       strlen(msg),
                       HAL_MAX_DELAY);
 }
-/* USER CODE END 0 */
 
 int main(void)
 {
-    /* MCU init ---------------------------------------------------------------*/
     HAL_Init();
     SystemClock_Config();
 
@@ -53,22 +41,12 @@ int main(void)
     MX_TIM2_Init();
     MX_I2C1_Init();
 
-    /* USER CODE BEGIN 2 */
-
-    /*
-     * Give the USB host ~500 ms to enumerate the CDC device before we try
-     * to transmit.  Without this, the first CDC_Send after power-on may be
-     * dropped because the host hasn't opened the COM port yet.
-     */
     HAL_Delay(500);
 
 butt_Init();
 
 UART_Send("Controller ready!\r\n");
 
-    /* USER CODE END 2 */
-
-    /* Infinite loop ----------------------------------------------------------*/
 while (1)
 {
     if (read_butt_Left())
@@ -88,10 +66,6 @@ while (1)
     HAL_Delay(10);
 }
 }
-
-/* ---------------------------------------------------------------------------*/
-/* CubeMX-generated peripheral init functions (unchanged)                    */
-/* ---------------------------------------------------------------------------*/
 
 void SystemClock_Config(void)
 {
@@ -142,9 +116,9 @@ static void MX_TIM2_Init(void)
     TIM_OC_InitTypeDef      sConfigOC          = {0};
 
     htim2.Instance               = TIM2;
-    htim2.Init.Prescaler         = 7199;   /* 72 MHz / 7200 = 10 kHz tick  */
+    htim2.Init.Prescaler         = 7199;   
     htim2.Init.CounterMode       = TIM_COUNTERMODE_UP;
-    htim2.Init.Period            = 99;     /* 10 kHz / 100  = 100 Hz OC    */
+    htim2.Init.Period            = 99;    
     htim2.Init.ClockDivision     = TIM_CLOCKDIVISION_DIV1;
     htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
     if (HAL_TIM_Base_Init(&htim2) != HAL_OK) Error_Handler();
@@ -189,30 +163,25 @@ static void MX_GPIO_Init(void)
     __HAL_RCC_GPIOA_CLK_ENABLE();
     __HAL_RCC_GPIOB_CLK_ENABLE();
 
-    /* LED outputs — drive low (off) at startup */
     HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0 | GPIO_PIN_1, GPIO_PIN_RESET);
     HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_RESET);
 
-    /* PC13 — on-board button */
     GPIO_InitStruct.Pin  = GPIO_PIN_13;
     GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
     GPIO_InitStruct.Pull = GPIO_PULLUP;
     HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-    /* PA1, PA2, PA3, PA4 — external buttons (active-low) */
     GPIO_InitStruct.Pin  = GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_3 | GPIO_PIN_4;
     GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
     GPIO_InitStruct.Pull = GPIO_PULLUP;
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-    /* PB0, PB1 — RGB LED R and G channels */
     GPIO_InitStruct.Pin   = GPIO_PIN_0 | GPIO_PIN_1;
     GPIO_InitStruct.Mode  = GPIO_MODE_OUTPUT_PP;
     GPIO_InitStruct.Pull  = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
     HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-    /* PA8 — RGB LED B channel */
     GPIO_InitStruct.Pin   = GPIO_PIN_8;
     GPIO_InitStruct.Mode  = GPIO_MODE_OUTPUT_PP;
     GPIO_InitStruct.Pull  = GPIO_NOPULL;

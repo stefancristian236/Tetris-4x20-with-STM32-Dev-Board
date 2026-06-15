@@ -2,8 +2,6 @@
 #include "stm32f1xx_hal.h"
 #include <stdint.h>
 
-/* ---------------- FSM ---------------- */
-
 typedef enum {
     BTN_IDLE,
     BTN_DEBOUNCING,
@@ -17,8 +15,6 @@ typedef struct {
     uint32_t t_start;
 } Btn;
 
-/* ---------------- Buttons ---------------- */
-
 static Btn B[4] =
 {
     { BUTT_LEFT_PORT,   BUTT_LEFT_PIN,   BTN_IDLE, 0 },
@@ -26,8 +22,6 @@ static Btn B[4] =
     { BUTT_ROTATE_PORT, BUTT_ROTATE_PIN, BTN_IDLE, 0 },
     { BUTT_DROP_PORT,   BUTT_DROP_PIN,   BTN_IDLE, 0 }
 };
-
-/* ---------------- Init ---------------- */
 
 void butt_Init(void)
 {
@@ -37,8 +31,6 @@ void butt_Init(void)
         B[i].t_start = 0;
     }
 }
-
-/* ---------------- Core Poll ---------------- */
 
 static uint8_t poll(Btn *b)
 {
@@ -79,8 +71,6 @@ static uint8_t poll(Btn *b)
 
     return 0;
 }
-
-/* ---------------- Public API ---------------- */
 
 uint8_t read_butt_Left(void)   { return poll(&B[0]); }
 uint8_t read_butt_Right(void)  { return poll(&B[1]); }
