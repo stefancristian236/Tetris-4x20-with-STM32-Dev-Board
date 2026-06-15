@@ -1,0 +1,1697 @@
+ARM GAS  C:\Users\crist\AppData\Local\Temp\ccv7M0kn.s 			page 1
+
+
+   1              		.cpu cortex-m3
+   2              		.arch armv7-m
+   3              		.fpu softvfp
+   4              		.eabi_attribute 20, 1
+   5              		.eabi_attribute 21, 1
+   6              		.eabi_attribute 23, 3
+   7              		.eabi_attribute 24, 1
+   8              		.eabi_attribute 25, 1
+   9              		.eabi_attribute 26, 1
+  10              		.eabi_attribute 30, 1
+  11              		.eabi_attribute 34, 1
+  12              		.eabi_attribute 18, 4
+  13              		.file	"tetris.c"
+  14              		.text
+  15              	.Ltext0:
+  16              		.cfi_sections	.debug_frame
+  17              		.file 1 "Core/Src/tetris.c"
+  18              		.section	.text.get_shape_cell,"ax",%progbits
+  19              		.align	1
+  20              		.global	get_shape_cell
+  21              		.syntax unified
+  22              		.thumb
+  23              		.thumb_func
+  25              	get_shape_cell:
+  26              	.LVL0:
+  27              	.LFB68:
+   1:Core/Src/tetris.c **** #include "tetris.h"
+   2:Core/Src/tetris.c **** #include "i2c-lcd.h" // Your LCD library
+   3:Core/Src/tetris.c **** #include <string.h>
+   4:Core/Src/tetris.c **** #include <stdlib.h>
+   5:Core/Src/tetris.c **** #include <stdio.h>
+   6:Core/Src/tetris.c **** #include "stm32f1xx_hal.h"
+   7:Core/Src/tetris.c **** 
+   8:Core/Src/tetris.c **** extern UART_HandleTypeDef huart1; 
+   9:Core/Src/tetris.c **** 
+  10:Core/Src/tetris.c **** uint8_t board[BOARD_H][BOARD_W];
+  11:Core/Src/tetris.c **** uint32_t last_fall_time = 0;
+  12:Core/Src/tetris.c **** 
+  13:Core/Src/tetris.c **** int8_t piece_x, piece_y, piece_type, piece_rot;
+  14:Core/Src/tetris.c **** 
+  15:Core/Src/tetris.c **** const uint16_t SHAPES[7][4] = {
+  16:Core/Src/tetris.c ****     {0x0F00, 0x2222, 0x00F0, 0x4444}, // I
+  17:Core/Src/tetris.c ****     {0x44C0, 0x8E00, 0x6440, 0x0E20}, // J
+  18:Core/Src/tetris.c ****     {0x4460, 0x0E80, 0xC440, 0x2E00}, // L
+  19:Core/Src/tetris.c ****     {0xCC00, 0xCC00, 0xCC00, 0xCC00}, // O
+  20:Core/Src/tetris.c ****     {0x06C0, 0x8C40, 0x6C00, 0x4620}, // S
+  21:Core/Src/tetris.c ****     {0x0E40, 0x4C40, 0x4E00, 0x4640}, // T
+  22:Core/Src/tetris.c ****     {0x0C60, 0x4C80, 0xC600, 0x2640}  // Z
+  23:Core/Src/tetris.c **** };
+  24:Core/Src/tetris.c **** 
+  25:Core/Src/tetris.c **** bool get_shape_cell(int type, int rot, int x, int y) {
+  28              		.loc 1 25 54 view -0
+  29              		.cfi_startproc
+  30              		@ args = 0, pretend = 0, frame = 0
+  31              		@ frame_needed = 0, uses_anonymous_args = 0
+  32              		@ link register save eliminated.
+  26:Core/Src/tetris.c ****     return (SHAPES[type][rot] & (1 << (15 - (y * 4 + x)))) != 0;
+ARM GAS  C:\Users\crist\AppData\Local\Temp\ccv7M0kn.s 			page 2
+
+
+  33              		.loc 1 26 5 view .LVU1
+  34              		.loc 1 26 25 is_stmt 0 view .LVU2
+  35 0000 01EB8001 		add	r1, r1, r0, lsl #2
+  36              	.LVL1:
+  37              		.loc 1 26 25 view .LVU3
+  38 0004 0548     		ldr	r0, .L2
+  39              	.LVL2:
+  40              		.loc 1 26 25 view .LVU4
+  41 0006 30F81100 		ldrh	r0, [r0, r1, lsl #1]
+  42              		.loc 1 26 52 view .LVU5
+  43 000a 02EB8302 		add	r2, r2, r3, lsl #2
+  44              	.LVL3:
+  45              		.loc 1 26 43 view .LVU6
+  46 000e C2F10F02 		rsb	r2, r2, #15
+  47              		.loc 1 26 60 view .LVU7
+  48 0012 1041     		asrs	r0, r0, r2
+  27:Core/Src/tetris.c **** }
+  49              		.loc 1 27 1 view .LVU8
+  50 0014 00F00100 		and	r0, r0, #1
+  51 0018 7047     		bx	lr
+  52              	.L3:
+  53 001a 00BF     		.align	2
+  54              	.L2:
+  55 001c 00000000 		.word	SHAPES
+  56              		.cfi_endproc
+  57              	.LFE68:
+  59              		.section	.text.check_collision,"ax",%progbits
+  60              		.align	1
+  61              		.global	check_collision
+  62              		.syntax unified
+  63              		.thumb
+  64              		.thumb_func
+  66              	check_collision:
+  67              	.LVL4:
+  68              	.LFB69:
+  28:Core/Src/tetris.c **** 
+  29:Core/Src/tetris.c **** bool check_collision(int px, int py, int rot) {
+  69              		.loc 1 29 47 is_stmt 1 view -0
+  70              		.cfi_startproc
+  71              		@ args = 0, pretend = 0, frame = 0
+  72              		@ frame_needed = 0, uses_anonymous_args = 0
+  73              		.loc 1 29 47 is_stmt 0 view .LVU10
+  74 0000 2DE9F843 		push	{r3, r4, r5, r6, r7, r8, r9, lr}
+  75              	.LCFI0:
+  76              		.cfi_def_cfa_offset 32
+  77              		.cfi_offset 3, -32
+  78              		.cfi_offset 4, -28
+  79              		.cfi_offset 5, -24
+  80              		.cfi_offset 6, -20
+  81              		.cfi_offset 7, -16
+  82              		.cfi_offset 8, -12
+  83              		.cfi_offset 9, -8
+  84              		.cfi_offset 14, -4
+  85 0004 8146     		mov	r9, r0
+  86 0006 8846     		mov	r8, r1
+  87 0008 1746     		mov	r7, r2
+  30:Core/Src/tetris.c ****     for (int y = 0; y < 4; y++) {
+ARM GAS  C:\Users\crist\AppData\Local\Temp\ccv7M0kn.s 			page 3
+
+
+  88              		.loc 1 30 5 is_stmt 1 view .LVU11
+  89              	.LBB2:
+  90              		.loc 1 30 10 view .LVU12
+  91              	.LVL5:
+  92              		.loc 1 30 14 is_stmt 0 view .LVU13
+  93 000a 0025     		movs	r5, #0
+  94              		.loc 1 30 5 view .LVU14
+  95 000c 1FE0     		b	.L5
+  96              	.LVL6:
+  97              	.L6:
+  98              	.LBB3:
+  31:Core/Src/tetris.c ****         for (int x = 0; x < 4; x++) {
+  99              		.loc 1 31 33 is_stmt 1 discriminator 2 view .LVU15
+ 100 000e 0134     		adds	r4, r4, #1
+ 101              	.LVL7:
+ 102              	.L9:
+ 103              		.loc 1 31 27 discriminator 1 view .LVU16
+ 104 0010 032C     		cmp	r4, #3
+ 105 0012 1BDC     		bgt	.L12
+  32:Core/Src/tetris.c ****             if (get_shape_cell(piece_type, rot, x, y)) {
+ 106              		.loc 1 32 13 view .LVU17
+ 107              		.loc 1 32 17 is_stmt 0 view .LVU18
+ 108 0014 2B46     		mov	r3, r5
+ 109 0016 2246     		mov	r2, r4
+ 110 0018 3946     		mov	r1, r7
+ 111 001a 114E     		ldr	r6, .L14
+ 112 001c 96F90000 		ldrsb	r0, [r6]
+ 113 0020 FFF7FEFF 		bl	get_shape_cell
+ 114              	.LVL8:
+ 115              		.loc 1 32 16 discriminator 1 view .LVU19
+ 116 0024 0146     		mov	r1, r0
+ 117 0026 0028     		cmp	r0, #0
+ 118 0028 F1D0     		beq	.L6
+ 119              	.LBB4:
+  33:Core/Src/tetris.c ****                 int nx = px + x;
+ 120              		.loc 1 33 17 is_stmt 1 view .LVU20
+ 121              		.loc 1 33 21 is_stmt 0 view .LVU21
+ 122 002a 04EB0902 		add	r2, r4, r9
+ 123              	.LVL9:
+  34:Core/Src/tetris.c ****                 int ny = py + y;
+ 124              		.loc 1 34 17 is_stmt 1 view .LVU22
+ 125              		.loc 1 34 21 is_stmt 0 view .LVU23
+ 126 002e 05EB0803 		add	r3, r5, r8
+ 127              	.LVL10:
+  35:Core/Src/tetris.c ****                 if (nx < 0 || nx >= BOARD_W || ny >= BOARD_H) return true; 
+ 128              		.loc 1 35 17 is_stmt 1 view .LVU24
+ 129              		.loc 1 35 20 is_stmt 0 view .LVU25
+ 130 0032 072A     		cmp	r2, #7
+ 131 0034 10D8     		bhi	.L7
+ 132              		.loc 1 35 45 discriminator 2 view .LVU26
+ 133 0036 132B     		cmp	r3, #19
+ 134 0038 0EDC     		bgt	.L7
+  36:Core/Src/tetris.c ****                 if (ny >= 0 && board[ny][nx]) return true;                 
+ 135              		.loc 1 36 17 is_stmt 1 view .LVU27
+ 136              		.loc 1 36 20 is_stmt 0 view .LVU28
+ 137 003a 002B     		cmp	r3, #0
+ 138 003c E7DB     		blt	.L6
+ARM GAS  C:\Users\crist\AppData\Local\Temp\ccv7M0kn.s 			page 4
+
+
+ 139              		.loc 1 36 41 discriminator 1 view .LVU29
+ 140 003e 0948     		ldr	r0, .L14+4
+ 141 0040 00EBC303 		add	r3, r0, r3, lsl #3
+ 142              	.LVL11:
+ 143              		.loc 1 36 41 discriminator 1 view .LVU30
+ 144 0044 9B5C     		ldrb	r3, [r3, r2]	@ zero_extendqisi2
+ 145              		.loc 1 36 29 discriminator 1 view .LVU31
+ 146 0046 002B     		cmp	r3, #0
+ 147 0048 E1D0     		beq	.L6
+ 148 004a 05E0     		b	.L7
+ 149              	.LVL12:
+ 150              	.L12:
+ 151              		.loc 1 36 29 discriminator 1 view .LVU32
+ 152              	.LBE4:
+ 153              	.LBE3:
+  30:Core/Src/tetris.c ****         for (int x = 0; x < 4; x++) {
+ 154              		.loc 1 30 29 is_stmt 1 discriminator 2 view .LVU33
+ 155 004c 0135     		adds	r5, r5, #1
+ 156              	.LVL13:
+ 157              	.L5:
+  30:Core/Src/tetris.c ****         for (int x = 0; x < 4; x++) {
+ 158              		.loc 1 30 23 discriminator 1 view .LVU34
+ 159 004e 032D     		cmp	r5, #3
+ 160 0050 01DC     		bgt	.L13
+ 161              	.LBB5:
+  31:Core/Src/tetris.c ****             if (get_shape_cell(piece_type, rot, x, y)) {
+ 162              		.loc 1 31 18 is_stmt 0 view .LVU35
+ 163 0052 0024     		movs	r4, #0
+ 164 0054 DCE7     		b	.L9
+ 165              	.L13:
+ 166              	.LBE5:
+ 167              	.LBE2:
+  37:Core/Src/tetris.c ****             }
+  38:Core/Src/tetris.c ****         }
+  39:Core/Src/tetris.c ****     }
+  40:Core/Src/tetris.c ****     return false;
+ 168              		.loc 1 40 12 view .LVU36
+ 169 0056 0021     		movs	r1, #0
+ 170              	.L7:
+  41:Core/Src/tetris.c **** }
+ 171              		.loc 1 41 1 view .LVU37
+ 172 0058 0846     		mov	r0, r1
+ 173 005a BDE8F883 		pop	{r3, r4, r5, r6, r7, r8, r9, pc}
+ 174              	.LVL14:
+ 175              	.L15:
+ 176              		.loc 1 41 1 view .LVU38
+ 177 005e 00BF     		.align	2
+ 178              	.L14:
+ 179 0060 00000000 		.word	piece_type
+ 180 0064 00000000 		.word	board
+ 181              		.cfi_endproc
+ 182              	.LFE69:
+ 184              		.section	.text.spawn_piece,"ax",%progbits
+ 185              		.align	1
+ 186              		.global	spawn_piece
+ 187              		.syntax unified
+ 188              		.thumb
+ARM GAS  C:\Users\crist\AppData\Local\Temp\ccv7M0kn.s 			page 5
+
+
+ 189              		.thumb_func
+ 191              	spawn_piece:
+ 192              	.LFB70:
+  42:Core/Src/tetris.c **** 
+  43:Core/Src/tetris.c **** void spawn_piece(void) {
+ 193              		.loc 1 43 24 is_stmt 1 view -0
+ 194              		.cfi_startproc
+ 195              		@ args = 0, pretend = 0, frame = 0
+ 196              		@ frame_needed = 0, uses_anonymous_args = 0
+ 197 0000 08B5     		push	{r3, lr}
+ 198              	.LCFI1:
+ 199              		.cfi_def_cfa_offset 8
+ 200              		.cfi_offset 3, -8
+ 201              		.cfi_offset 14, -4
+  44:Core/Src/tetris.c ****     piece_type = rand() % 7;
+ 202              		.loc 1 44 5 view .LVU40
+ 203              		.loc 1 44 18 is_stmt 0 view .LVU41
+ 204 0002 FFF7FEFF 		bl	rand
+ 205              	.LVL15:
+ 206              		.loc 1 44 25 discriminator 1 view .LVU42
+ 207 0006 104A     		ldr	r2, .L20
+ 208 0008 82FB0032 		smull	r3, r2, r2, r0
+ 209 000c 0244     		add	r2, r2, r0
+ 210 000e C317     		asrs	r3, r0, #31
+ 211 0010 C3EBA203 		rsb	r3, r3, r2, asr #2
+ 212 0014 C3EBC303 		rsb	r3, r3, r3, lsl #3
+ 213 0018 C31A     		subs	r3, r0, r3
+ 214              		.loc 1 44 16 discriminator 1 view .LVU43
+ 215 001a 0C4A     		ldr	r2, .L20+4
+ 216 001c 1370     		strb	r3, [r2]
+  45:Core/Src/tetris.c ****     piece_rot = 0;
+ 217              		.loc 1 45 5 is_stmt 1 view .LVU44
+ 218              		.loc 1 45 15 is_stmt 0 view .LVU45
+ 219 001e 0022     		movs	r2, #0
+ 220 0020 0B4B     		ldr	r3, .L20+8
+ 221 0022 1A70     		strb	r2, [r3]
+  46:Core/Src/tetris.c ****     piece_x = BOARD_W / 2 - 2;
+ 222              		.loc 1 46 5 is_stmt 1 view .LVU46
+ 223              		.loc 1 46 13 is_stmt 0 view .LVU47
+ 224 0024 0220     		movs	r0, #2
+ 225 0026 0B4B     		ldr	r3, .L20+12
+ 226 0028 1870     		strb	r0, [r3]
+  47:Core/Src/tetris.c ****     piece_y = -2;
+ 227              		.loc 1 47 5 is_stmt 1 view .LVU48
+ 228              		.loc 1 47 13 is_stmt 0 view .LVU49
+ 229 002a 0B4B     		ldr	r3, .L20+16
+ 230 002c FE21     		movs	r1, #254
+ 231 002e 1970     		strb	r1, [r3]
+  48:Core/Src/tetris.c ****     if (check_collision(piece_x, piece_y, piece_rot)) {
+ 232              		.loc 1 48 5 is_stmt 1 view .LVU50
+ 233              		.loc 1 48 9 is_stmt 0 view .LVU51
+ 234 0030 6FF00101 		mvn	r1, #1
+ 235 0034 FFF7FEFF 		bl	check_collision
+ 236              	.LVL16:
+ 237              		.loc 1 48 8 discriminator 1 view .LVU52
+ 238 0038 00B9     		cbnz	r0, .L19
+ 239              	.L16:
+ARM GAS  C:\Users\crist\AppData\Local\Temp\ccv7M0kn.s 			page 6
+
+
+  49:Core/Src/tetris.c ****         memset(board, 0, sizeof(board)); // Game Over
+  50:Core/Src/tetris.c ****     }
+  51:Core/Src/tetris.c **** }
+ 240              		.loc 1 51 1 view .LVU53
+ 241 003a 08BD     		pop	{r3, pc}
+ 242              	.L19:
+  49:Core/Src/tetris.c ****         memset(board, 0, sizeof(board)); // Game Over
+ 243              		.loc 1 49 9 is_stmt 1 view .LVU54
+ 244 003c A022     		movs	r2, #160
+ 245 003e 0021     		movs	r1, #0
+ 246 0040 0648     		ldr	r0, .L20+20
+ 247 0042 FFF7FEFF 		bl	memset
+ 248              	.LVL17:
+ 249              		.loc 1 51 1 is_stmt 0 view .LVU55
+ 250 0046 F8E7     		b	.L16
+ 251              	.L21:
+ 252              		.align	2
+ 253              	.L20:
+ 254 0048 93244992 		.word	-1840700269
+ 255 004c 00000000 		.word	piece_type
+ 256 0050 00000000 		.word	piece_rot
+ 257 0054 00000000 		.word	piece_x
+ 258 0058 00000000 		.word	piece_y
+ 259 005c 00000000 		.word	board
+ 260              		.cfi_endproc
+ 261              	.LFE70:
+ 263              		.section	.text.lock_piece,"ax",%progbits
+ 264              		.align	1
+ 265              		.global	lock_piece
+ 266              		.syntax unified
+ 267              		.thumb
+ 268              		.thumb_func
+ 270              	lock_piece:
+ 271              	.LFB71:
+  52:Core/Src/tetris.c **** 
+  53:Core/Src/tetris.c **** void lock_piece(void) {
+ 272              		.loc 1 53 23 is_stmt 1 view -0
+ 273              		.cfi_startproc
+ 274              		@ args = 0, pretend = 0, frame = 0
+ 275              		@ frame_needed = 0, uses_anonymous_args = 0
+ 276 0000 38B5     		push	{r3, r4, r5, lr}
+ 277              	.LCFI2:
+ 278              		.cfi_def_cfa_offset 16
+ 279              		.cfi_offset 3, -16
+ 280              		.cfi_offset 4, -12
+ 281              		.cfi_offset 5, -8
+ 282              		.cfi_offset 14, -4
+  54:Core/Src/tetris.c ****     for (int y = 0; y < 4; y++) {
+ 283              		.loc 1 54 5 view .LVU57
+ 284              	.LBB6:
+ 285              		.loc 1 54 10 view .LVU58
+ 286              	.LVL18:
+ 287              		.loc 1 54 14 is_stmt 0 view .LVU59
+ 288 0002 0025     		movs	r5, #0
+ 289              		.loc 1 54 5 view .LVU60
+ 290 0004 1EE0     		b	.L23
+ 291              	.LVL19:
+ARM GAS  C:\Users\crist\AppData\Local\Temp\ccv7M0kn.s 			page 7
+
+
+ 292              	.L24:
+ 293              	.LBB7:
+  55:Core/Src/tetris.c ****         for (int x = 0; x < 4; x++) {
+ 294              		.loc 1 55 33 is_stmt 1 discriminator 2 view .LVU61
+ 295 0006 0134     		adds	r4, r4, #1
+ 296              	.LVL20:
+ 297              	.L26:
+ 298              		.loc 1 55 27 discriminator 1 view .LVU62
+ 299 0008 032C     		cmp	r4, #3
+ 300 000a 1ADC     		bgt	.L39
+  56:Core/Src/tetris.c ****             if (get_shape_cell(piece_type, piece_rot, x, y) && (piece_y + y >= 0)) {
+ 301              		.loc 1 56 13 view .LVU63
+ 302              		.loc 1 56 17 is_stmt 0 view .LVU64
+ 303 000c 2B46     		mov	r3, r5
+ 304 000e 2246     		mov	r2, r4
+ 305 0010 2549     		ldr	r1, .L44
+ 306 0012 91F90010 		ldrsb	r1, [r1]
+ 307 0016 2548     		ldr	r0, .L44+4
+ 308 0018 90F90000 		ldrsb	r0, [r0]
+ 309 001c FFF7FEFF 		bl	get_shape_cell
+ 310              	.LVL21:
+ 311              		.loc 1 56 16 discriminator 1 view .LVU65
+ 312 0020 0028     		cmp	r0, #0
+ 313 0022 F0D0     		beq	.L24
+ 314              		.loc 1 56 73 discriminator 1 view .LVU66
+ 315 0024 224B     		ldr	r3, .L44+8
+ 316 0026 93F90030 		ldrsb	r3, [r3]
+ 317              		.loc 1 56 61 discriminator 1 view .LVU67
+ 318 002a 5B19     		adds	r3, r3, r5
+ 319 002c EBD4     		bmi	.L24
+  57:Core/Src/tetris.c ****                 board[piece_y + y][piece_x + x] = 1;
+ 320              		.loc 1 57 17 is_stmt 1 view .LVU68
+ 321              		.loc 1 57 44 is_stmt 0 view .LVU69
+ 322 002e 214A     		ldr	r2, .L44+12
+ 323 0030 92F90020 		ldrsb	r2, [r2]
+ 324 0034 2244     		add	r2, r2, r4
+ 325              		.loc 1 57 49 view .LVU70
+ 326 0036 2049     		ldr	r1, .L44+16
+ 327 0038 01EBC303 		add	r3, r1, r3, lsl #3
+ 328 003c 0121     		movs	r1, #1
+ 329 003e 9954     		strb	r1, [r3, r2]
+ 330 0040 E1E7     		b	.L24
+ 331              	.L39:
+ 332              		.loc 1 57 49 view .LVU71
+ 333              	.LBE7:
+  54:Core/Src/tetris.c ****         for (int x = 0; x < 4; x++) {
+ 334              		.loc 1 54 29 is_stmt 1 discriminator 2 view .LVU72
+ 335 0042 0135     		adds	r5, r5, #1
+ 336              	.LVL22:
+ 337              	.L23:
+  54:Core/Src/tetris.c ****         for (int x = 0; x < 4; x++) {
+ 338              		.loc 1 54 23 discriminator 1 view .LVU73
+ 339 0044 032D     		cmp	r5, #3
+ 340 0046 01DC     		bgt	.L40
+ 341              	.LBB8:
+  55:Core/Src/tetris.c ****             if (get_shape_cell(piece_type, piece_rot, x, y) && (piece_y + y >= 0)) {
+ 342              		.loc 1 55 18 is_stmt 0 view .LVU74
+ARM GAS  C:\Users\crist\AppData\Local\Temp\ccv7M0kn.s 			page 8
+
+
+ 343 0048 0024     		movs	r4, #0
+ 344 004a DDE7     		b	.L26
+ 345              	.L40:
+ 346              	.LBE8:
+ 347              	.LBE6:
+ 348              	.LBB9:
+  58:Core/Src/tetris.c ****             }
+  59:Core/Src/tetris.c ****         }
+  60:Core/Src/tetris.c ****     }
+  61:Core/Src/tetris.c ****     for (int y = BOARD_H - 1; y >= 0; y--) {
+ 349              		.loc 1 61 14 view .LVU75
+ 350 004c 1321     		movs	r1, #19
+ 351 004e 02E0     		b	.L27
+ 352              	.LVL23:
+ 353              	.L43:
+ 354              	.LBB10:
+  62:Core/Src/tetris.c ****         bool full = true;
+ 355              		.loc 1 62 14 view .LVU76
+ 356 0050 0123     		movs	r3, #1
+ 357              	.LVL24:
+ 358              	.L28:
+  63:Core/Src/tetris.c ****         for (int x = 0; x < BOARD_W; x++) {
+  64:Core/Src/tetris.c ****             if (!board[y][x]) { full = false; break; }
+  65:Core/Src/tetris.c ****         }
+  66:Core/Src/tetris.c ****         if (full) {
+ 359              		.loc 1 66 9 is_stmt 1 view .LVU77
+ 360              		.loc 1 66 12 is_stmt 0 view .LVU78
+ 361 0052 1BBB     		cbnz	r3, .L41
+ 362              	.LVL25:
+ 363              	.L31:
+ 364              		.loc 1 66 12 view .LVU79
+ 365              	.LBE10:
+  61:Core/Src/tetris.c ****         bool full = true;
+ 366              		.loc 1 61 40 is_stmt 1 discriminator 2 view .LVU80
+ 367 0054 0139     		subs	r1, r1, #1
+ 368              	.LVL26:
+ 369              	.L27:
+  61:Core/Src/tetris.c ****         bool full = true;
+ 370              		.loc 1 61 33 discriminator 1 view .LVU81
+ 371 0056 0029     		cmp	r1, #0
+ 372 0058 22DB     		blt	.L42
+ 373              	.LBB14:
+ 374              	.LBB11:
+  63:Core/Src/tetris.c ****         for (int x = 0; x < BOARD_W; x++) {
+ 375              		.loc 1 63 18 is_stmt 0 view .LVU82
+ 376 005a 0023     		movs	r3, #0
+ 377              	.L33:
+ 378              	.LVL27:
+  63:Core/Src/tetris.c ****         for (int x = 0; x < BOARD_W; x++) {
+ 379              		.loc 1 63 27 is_stmt 1 discriminator 1 view .LVU83
+ 380 005c 072B     		cmp	r3, #7
+ 381 005e F7DC     		bgt	.L43
+  64:Core/Src/tetris.c ****         }
+ 382              		.loc 1 64 13 view .LVU84
+  64:Core/Src/tetris.c ****         }
+ 383              		.loc 1 64 26 is_stmt 0 view .LVU85
+ 384 0060 154A     		ldr	r2, .L44+16
+ARM GAS  C:\Users\crist\AppData\Local\Temp\ccv7M0kn.s 			page 9
+
+
+ 385 0062 02EBC102 		add	r2, r2, r1, lsl #3
+ 386 0066 D25C     		ldrb	r2, [r2, r3]	@ zero_extendqisi2
+  64:Core/Src/tetris.c ****         }
+ 387              		.loc 1 64 16 view .LVU86
+ 388 0068 0AB1     		cbz	r2, .L35
+  63:Core/Src/tetris.c ****         for (int x = 0; x < BOARD_W; x++) {
+ 389              		.loc 1 63 39 is_stmt 1 discriminator 2 view .LVU87
+ 390 006a 0133     		adds	r3, r3, #1
+ 391              	.LVL28:
+  63:Core/Src/tetris.c ****         for (int x = 0; x < BOARD_W; x++) {
+ 392              		.loc 1 63 39 is_stmt 0 discriminator 2 view .LVU88
+ 393 006c F6E7     		b	.L33
+ 394              	.L35:
+  64:Core/Src/tetris.c ****         }
+ 395              		.loc 1 64 38 discriminator 1 view .LVU89
+ 396 006e 0023     		movs	r3, #0
+ 397              	.LVL29:
+  64:Core/Src/tetris.c ****         }
+ 398              		.loc 1 64 38 discriminator 1 view .LVU90
+ 399 0070 EFE7     		b	.L28
+ 400              	.LVL30:
+ 401              	.L32:
+  64:Core/Src/tetris.c ****         }
+ 402              		.loc 1 64 38 discriminator 1 view .LVU91
+ 403              	.LBE11:
+ 404              	.LBB12:
+  67:Core/Src/tetris.c ****             for (int r = y; r > 0; r--) memcpy(board[r], board[r - 1], BOARD_W);
+ 405              		.loc 1 67 41 is_stmt 1 discriminator 3 view .LVU92
+ 406              		.loc 1 67 53 is_stmt 0 discriminator 3 view .LVU93
+ 407 0072 DD00     		lsls	r5, r3, #3
+ 408 0074 104A     		ldr	r2, .L44+16
+ 409 0076 02EBC300 		add	r0, r2, r3, lsl #3
+ 410              		.loc 1 67 66 discriminator 3 view .LVU94
+ 411 007a 013B     		subs	r3, r3, #1
+ 412              	.LVL31:
+ 413              		.loc 1 67 63 discriminator 3 view .LVU95
+ 414 007c 02EBC304 		add	r4, r2, r3, lsl #3
+ 415              		.loc 1 67 41 discriminator 3 view .LVU96
+ 416 0080 52F833C0 		ldr	ip, [r2, r3, lsl #3]	@ unaligned
+ 417 0084 6468     		ldr	r4, [r4, #4]	@ unaligned
+ 418 0086 42F805C0 		str	ip, [r2, r5]	@ unaligned
+ 419 008a 4460     		str	r4, [r0, #4]	@ unaligned
+ 420              		.loc 1 67 37 is_stmt 1 discriminator 3 view .LVU97
+ 421              	.LVL32:
+ 422              	.L30:
+ 423              		.loc 1 67 31 discriminator 2 view .LVU98
+ 424 008c 002B     		cmp	r3, #0
+ 425 008e F0DC     		bgt	.L32
+ 426              	.LBE12:
+  68:Core/Src/tetris.c ****             memset(board[0], 0, BOARD_W);
+ 427              		.loc 1 68 13 view .LVU99
+ 428 0090 094B     		ldr	r3, .L44+16
+ 429              	.LVL33:
+ 430              		.loc 1 68 13 is_stmt 0 view .LVU100
+ 431 0092 0022     		movs	r2, #0
+ 432 0094 1A60     		str	r2, [r3]
+ 433 0096 5A60     		str	r2, [r3, #4]
+ARM GAS  C:\Users\crist\AppData\Local\Temp\ccv7M0kn.s 			page 10
+
+
+  69:Core/Src/tetris.c ****             y++; 
+ 434              		.loc 1 69 13 is_stmt 1 view .LVU101
+ 435              		.loc 1 69 14 is_stmt 0 view .LVU102
+ 436 0098 0131     		adds	r1, r1, #1
+ 437              	.LVL34:
+ 438              		.loc 1 69 14 view .LVU103
+ 439 009a DBE7     		b	.L31
+ 440              	.LVL35:
+ 441              	.L41:
+ 442              	.LBB13:
+  67:Core/Src/tetris.c ****             for (int r = y; r > 0; r--) memcpy(board[r], board[r - 1], BOARD_W);
+ 443              		.loc 1 67 22 view .LVU104
+ 444 009c 0B46     		mov	r3, r1
+ 445              	.LVL36:
+  67:Core/Src/tetris.c ****             for (int r = y; r > 0; r--) memcpy(board[r], board[r - 1], BOARD_W);
+ 446              		.loc 1 67 22 view .LVU105
+ 447 009e F5E7     		b	.L30
+ 448              	.LVL37:
+ 449              	.L42:
+  67:Core/Src/tetris.c ****             for (int r = y; r > 0; r--) memcpy(board[r], board[r - 1], BOARD_W);
+ 450              		.loc 1 67 22 view .LVU106
+ 451              	.LBE13:
+ 452              	.LBE14:
+ 453              	.LBE9:
+  70:Core/Src/tetris.c ****         }
+  71:Core/Src/tetris.c ****     }
+  72:Core/Src/tetris.c ****     spawn_piece();
+ 454              		.loc 1 72 5 is_stmt 1 view .LVU107
+ 455 00a0 FFF7FEFF 		bl	spawn_piece
+ 456              	.LVL38:
+  73:Core/Src/tetris.c **** }
+ 457              		.loc 1 73 1 is_stmt 0 view .LVU108
+ 458 00a4 38BD     		pop	{r3, r4, r5, pc}
+ 459              	.L45:
+ 460 00a6 00BF     		.align	2
+ 461              	.L44:
+ 462 00a8 00000000 		.word	piece_rot
+ 463 00ac 00000000 		.word	piece_type
+ 464 00b0 00000000 		.word	piece_y
+ 465 00b4 00000000 		.word	piece_x
+ 466 00b8 00000000 		.word	board
+ 467              		.cfi_endproc
+ 468              	.LFE71:
+ 470              		.section	.text.Tetris_Init,"ax",%progbits
+ 471              		.align	1
+ 472              		.global	Tetris_Init
+ 473              		.syntax unified
+ 474              		.thumb
+ 475              		.thumb_func
+ 477              	Tetris_Init:
+ 478              	.LFB72:
+  74:Core/Src/tetris.c **** 
+  75:Core/Src/tetris.c **** void Tetris_Init(void) {
+ 479              		.loc 1 75 24 is_stmt 1 view -0
+ 480              		.cfi_startproc
+ 481              		@ args = 0, pretend = 0, frame = 0
+ 482              		@ frame_needed = 0, uses_anonymous_args = 0
+ARM GAS  C:\Users\crist\AppData\Local\Temp\ccv7M0kn.s 			page 11
+
+
+ 483 0000 08B5     		push	{r3, lr}
+ 484              	.LCFI3:
+ 485              		.cfi_def_cfa_offset 8
+ 486              		.cfi_offset 3, -8
+ 487              		.cfi_offset 14, -4
+  76:Core/Src/tetris.c ****     memset(board, 0, sizeof(board));
+ 488              		.loc 1 76 5 view .LVU110
+ 489 0002 A022     		movs	r2, #160
+ 490 0004 0021     		movs	r1, #0
+ 491 0006 0348     		ldr	r0, .L48
+ 492 0008 FFF7FEFF 		bl	memset
+ 493              	.LVL39:
+  77:Core/Src/tetris.c ****     spawn_piece();
+ 494              		.loc 1 77 5 view .LVU111
+ 495 000c FFF7FEFF 		bl	spawn_piece
+ 496              	.LVL40:
+  78:Core/Src/tetris.c **** }
+ 497              		.loc 1 78 1 is_stmt 0 view .LVU112
+ 498 0010 08BD     		pop	{r3, pc}
+ 499              	.L49:
+ 500 0012 00BF     		.align	2
+ 501              	.L48:
+ 502 0014 00000000 		.word	board
+ 503              		.cfi_endproc
+ 504              	.LFE72:
+ 506              		.section	.text.Tetris_Update,"ax",%progbits
+ 507              		.align	1
+ 508              		.global	Tetris_Update
+ 509              		.syntax unified
+ 510              		.thumb
+ 511              		.thumb_func
+ 513              	Tetris_Update:
+ 514              	.LVL41:
+ 515              	.LFB73:
+  79:Core/Src/tetris.c **** 
+  80:Core/Src/tetris.c **** void Tetris_Update(TetrisCommand cmd) {
+ 516              		.loc 1 80 39 is_stmt 1 view -0
+ 517              		.cfi_startproc
+ 518              		@ args = 0, pretend = 0, frame = 0
+ 519              		@ frame_needed = 0, uses_anonymous_args = 0
+ 520              		.loc 1 80 39 is_stmt 0 view .LVU114
+ 521 0000 10B5     		push	{r4, lr}
+ 522              	.LCFI4:
+ 523              		.cfi_def_cfa_offset 8
+ 524              		.cfi_offset 4, -8
+ 525              		.cfi_offset 14, -4
+  81:Core/Src/tetris.c ****     switch (cmd) {
+ 526              		.loc 1 81 5 is_stmt 1 view .LVU115
+ 527 0002 0138     		subs	r0, r0, #1
+ 528              	.LVL42:
+ 529              		.loc 1 81 5 is_stmt 0 view .LVU116
+ 530 0004 0328     		cmp	r0, #3
+ 531 0006 35D8     		bhi	.L50
+ 532 0008 DFE800F0 		tbb	[pc, r0]
+ 533              	.L53:
+ 534 000c 02       		.byte	(.L56-.L53)/2
+ 535 000d 13       		.byte	(.L55-.L53)/2
+ARM GAS  C:\Users\crist\AppData\Local\Temp\ccv7M0kn.s 			page 12
+
+
+ 536 000e 24       		.byte	(.L54-.L53)/2
+ 537 000f 38       		.byte	(.L52-.L53)/2
+ 538              		.p2align 1
+ 539              	.L56:
+  82:Core/Src/tetris.c ****         case CMD_LEFT:  if (!check_collision(piece_x - 1, piece_y, piece_rot)) piece_x--; break;
+ 540              		.loc 1 82 25 is_stmt 1 view .LVU117
+ 541              		.loc 1 82 30 is_stmt 0 view .LVU118
+ 542 0010 274B     		ldr	r3, .L60
+ 543 0012 93F90040 		ldrsb	r4, [r3]
+ 544 0016 274B     		ldr	r3, .L60+4
+ 545 0018 93F90020 		ldrsb	r2, [r3]
+ 546 001c 264B     		ldr	r3, .L60+8
+ 547 001e 93F90010 		ldrsb	r1, [r3]
+ 548 0022 601E     		subs	r0, r4, #1
+ 549              	.LVL43:
+ 550              		.loc 1 82 30 view .LVU119
+ 551 0024 FFF7FEFF 		bl	check_collision
+ 552              	.LVL44:
+ 553              		.loc 1 82 28 discriminator 1 view .LVU120
+ 554 0028 20BB     		cbnz	r0, .L50
+ 555              		.loc 1 82 80 is_stmt 1 discriminator 1 view .LVU121
+ 556              		.loc 1 82 87 is_stmt 0 discriminator 1 view .LVU122
+ 557 002a 013C     		subs	r4, r4, #1
+ 558 002c 204B     		ldr	r3, .L60
+ 559 002e 1C70     		strb	r4, [r3]
+ 560 0030 20E0     		b	.L50
+ 561              	.L55:
+  83:Core/Src/tetris.c ****         case CMD_RIGHT: if (!check_collision(piece_x + 1, piece_y, piece_rot)) piece_x++; break;
+ 562              		.loc 1 83 25 is_stmt 1 view .LVU123
+ 563              		.loc 1 83 30 is_stmt 0 view .LVU124
+ 564 0032 1F4B     		ldr	r3, .L60
+ 565 0034 93F90040 		ldrsb	r4, [r3]
+ 566 0038 1E4B     		ldr	r3, .L60+4
+ 567 003a 93F90020 		ldrsb	r2, [r3]
+ 568 003e 1E4B     		ldr	r3, .L60+8
+ 569 0040 93F90010 		ldrsb	r1, [r3]
+ 570 0044 601C     		adds	r0, r4, #1
+ 571 0046 FFF7FEFF 		bl	check_collision
+ 572              	.LVL45:
+ 573              		.loc 1 83 28 discriminator 1 view .LVU125
+ 574 004a 98B9     		cbnz	r0, .L50
+ 575              		.loc 1 83 80 is_stmt 1 discriminator 1 view .LVU126
+ 576              		.loc 1 83 87 is_stmt 0 discriminator 1 view .LVU127
+ 577 004c 0134     		adds	r4, r4, #1
+ 578 004e 184B     		ldr	r3, .L60
+ 579 0050 1C70     		strb	r4, [r3]
+ 580 0052 0FE0     		b	.L50
+ 581              	.L54:
+  84:Core/Src/tetris.c ****         case CMD_DOWN:  
+  85:Core/Src/tetris.c ****             if (!check_collision(piece_x, piece_y + 1, piece_rot)) {
+ 582              		.loc 1 85 13 is_stmt 1 view .LVU128
+ 583              		.loc 1 85 18 is_stmt 0 view .LVU129
+ 584 0054 184B     		ldr	r3, .L60+8
+ 585 0056 93F90040 		ldrsb	r4, [r3]
+ 586 005a 164B     		ldr	r3, .L60+4
+ 587 005c 93F90020 		ldrsb	r2, [r3]
+ 588 0060 611C     		adds	r1, r4, #1
+ARM GAS  C:\Users\crist\AppData\Local\Temp\ccv7M0kn.s 			page 13
+
+
+ 589 0062 134B     		ldr	r3, .L60
+ 590 0064 93F90000 		ldrsb	r0, [r3]
+ 591 0068 FFF7FEFF 		bl	check_collision
+ 592              	.LVL46:
+ 593              		.loc 1 85 16 discriminator 1 view .LVU130
+ 594 006c 18B9     		cbnz	r0, .L57
+  86:Core/Src/tetris.c ****                 piece_y++; 
+ 595              		.loc 1 86 17 is_stmt 1 view .LVU131
+ 596              		.loc 1 86 24 is_stmt 0 view .LVU132
+ 597 006e 0134     		adds	r4, r4, #1
+ 598 0070 114B     		ldr	r3, .L60+8
+ 599 0072 1C70     		strb	r4, [r3]
+ 600              	.L50:
+  87:Core/Src/tetris.c ****             } else {
+  88:Core/Src/tetris.c ****                 lock_piece();
+  89:Core/Src/tetris.c ****             }
+  90:Core/Src/tetris.c ****             break;
+  91:Core/Src/tetris.c ****         case CMD_ROTATE: 
+  92:Core/Src/tetris.c ****             if (!check_collision(piece_x, piece_y, (piece_rot + 1) % 4)) 
+  93:Core/Src/tetris.c ****                 piece_rot = (piece_rot + 1) % 4; 
+  94:Core/Src/tetris.c ****             break;
+  95:Core/Src/tetris.c ****         case CMD_NONE: default: break;
+  96:Core/Src/tetris.c ****     }
+  97:Core/Src/tetris.c **** }
+ 601              		.loc 1 97 1 view .LVU133
+ 602 0074 10BD     		pop	{r4, pc}
+ 603              	.L57:
+  88:Core/Src/tetris.c ****             }
+ 604              		.loc 1 88 17 is_stmt 1 view .LVU134
+ 605 0076 FFF7FEFF 		bl	lock_piece
+ 606              	.LVL47:
+ 607 007a FBE7     		b	.L50
+ 608              	.L52:
+  92:Core/Src/tetris.c ****                 piece_rot = (piece_rot + 1) % 4; 
+ 609              		.loc 1 92 13 view .LVU135
+  92:Core/Src/tetris.c ****                 piece_rot = (piece_rot + 1) % 4; 
+ 610              		.loc 1 92 63 is_stmt 0 view .LVU136
+ 611 007c 0D4B     		ldr	r3, .L60+4
+ 612 007e 93F90040 		ldrsb	r4, [r3]
+ 613 0082 0134     		adds	r4, r4, #1
+  92:Core/Src/tetris.c ****                 piece_rot = (piece_rot + 1) % 4; 
+ 614              		.loc 1 92 18 view .LVU137
+ 615 0084 6342     		rsbs	r3, r4, #0
+ 616 0086 04F00304 		and	r4, r4, #3
+ 617 008a 03F00303 		and	r3, r3, #3
+ 618 008e 58BF     		it	pl
+ 619 0090 5C42     		rsbpl	r4, r3, #0
+ 620 0092 2246     		mov	r2, r4
+ 621 0094 084B     		ldr	r3, .L60+8
+ 622 0096 93F90010 		ldrsb	r1, [r3]
+ 623 009a 054B     		ldr	r3, .L60
+ 624 009c 93F90000 		ldrsb	r0, [r3]
+ 625 00a0 FFF7FEFF 		bl	check_collision
+ 626              	.LVL48:
+  92:Core/Src/tetris.c ****                 piece_rot = (piece_rot + 1) % 4; 
+ 627              		.loc 1 92 16 discriminator 1 view .LVU138
+ 628 00a4 0028     		cmp	r0, #0
+ARM GAS  C:\Users\crist\AppData\Local\Temp\ccv7M0kn.s 			page 14
+
+
+ 629 00a6 E5D1     		bne	.L50
+  93:Core/Src/tetris.c ****             break;
+ 630              		.loc 1 93 17 is_stmt 1 view .LVU139
+  93:Core/Src/tetris.c ****             break;
+ 631              		.loc 1 93 27 is_stmt 0 view .LVU140
+ 632 00a8 024B     		ldr	r3, .L60+4
+ 633 00aa 1C70     		strb	r4, [r3]
+ 634              		.loc 1 97 1 view .LVU141
+ 635 00ac E2E7     		b	.L50
+ 636              	.L61:
+ 637 00ae 00BF     		.align	2
+ 638              	.L60:
+ 639 00b0 00000000 		.word	piece_x
+ 640 00b4 00000000 		.word	piece_rot
+ 641 00b8 00000000 		.word	piece_y
+ 642              		.cfi_endproc
+ 643              	.LFE73:
+ 645              		.section	.rodata.Tetris_DrawTerminal.str1.4,"aMS",%progbits,1
+ 646              		.align	2
+ 647              	.LC0:
+ 648 0000 5B5D00   		.ascii	"[]\000"
+ 649 0003 00       		.align	2
+ 650              	.LC1:
+ 651 0004 202000   		.ascii	"  \000"
+ 652 0007 00       		.align	2
+ 653              	.LC3:
+ 654 0008 54455452 		.ascii	"TETRIS 4x20 STM32\015\012<!========!>\015\012\000"
+ 654      49532034 
+ 654      78323020 
+ 654      53544D33 
+ 654      320D0A3C 
+ 655 002a 0000     		.align	2
+ 656              	.LC4:
+ 657 002c 3C2100   		.ascii	"<!\000"
+ 658 002f 00       		.align	2
+ 659              	.LC5:
+ 660 0030 213E0D0A 		.ascii	"!>\015\012\000"
+ 660      00
+ 661 0035 000000   		.align	2
+ 662              	.LC6:
+ 663 0038 3C213D3D 		.ascii	"<!========!>\015\012\000"
+ 663      3D3D3D3D 
+ 663      3D3D213E 
+ 663      0D0A00
+ 664 0047 00       		.align	2
+ 665              	.LC2:
+ 666 0048 1B5B324A 		.ascii	"\033[2J\033[H\000"
+ 666      1B5B4800 
+ 667              		.section	.text.Tetris_DrawTerminal,"ax",%progbits
+ 668              		.align	1
+ 669              		.global	Tetris_DrawTerminal
+ 670              		.syntax unified
+ 671              		.thumb
+ 672              		.thumb_func
+ 674              	Tetris_DrawTerminal:
+ 675              	.LFB74:
+  98:Core/Src/tetris.c **** 
+ARM GAS  C:\Users\crist\AppData\Local\Temp\ccv7M0kn.s 			page 15
+
+
+  99:Core/Src/tetris.c **** void Tetris_DrawTerminal(void) {
+ 676              		.loc 1 99 32 is_stmt 1 view -0
+ 677              		.cfi_startproc
+ 678              		@ args = 0, pretend = 0, frame = 1024
+ 679              		@ frame_needed = 0, uses_anonymous_args = 0
+ 680 0000 F0B5     		push	{r4, r5, r6, r7, lr}
+ 681              	.LCFI5:
+ 682              		.cfi_def_cfa_offset 20
+ 683              		.cfi_offset 4, -20
+ 684              		.cfi_offset 5, -16
+ 685              		.cfi_offset 6, -12
+ 686              		.cfi_offset 7, -8
+ 687              		.cfi_offset 14, -4
+ 688 0002 ADF2044D 		subw	sp, sp, #1028
+ 689              	.LCFI6:
+ 690              		.cfi_def_cfa_offset 1048
+ 100:Core/Src/tetris.c ****     char buf[1024] = "\033[2J\033[H"; 
+ 691              		.loc 1 100 5 view .LVU143
+ 692              		.loc 1 100 10 is_stmt 0 view .LVU144
+ 693 0006 6C46     		mov	r4, sp
+ 694 0008 484A     		ldr	r2, .L79
+ 695 000a 6B46     		mov	r3, sp
+ 696 000c 1068     		ldr	r0, [r2]	@ unaligned
+ 697 000e 5168     		ldr	r1, [r2, #4]	@ unaligned
+ 698 0010 03C3     		stmia	r3!, {r0, r1}
+ 699 0012 4FF47E72 		mov	r2, #1016
+ 700 0016 0021     		movs	r1, #0
+ 701 0018 1846     		mov	r0, r3
+ 702 001a FFF7FEFF 		bl	memset
+ 703              	.LVL49:
+ 101:Core/Src/tetris.c ****     strcat(buf, "TETRIS 4x20 STM32\r\n<!========!>\r\n"); // 8 columns wide
+ 704              		.loc 1 101 5 is_stmt 1 view .LVU145
+ 705 001e 6846     		mov	r0, sp
+ 706 0020 FFF7FEFF 		bl	strlen
+ 707              	.LVL50:
+ 708              		.loc 1 101 5 is_stmt 0 discriminator 1 view .LVU146
+ 709 0024 424E     		ldr	r6, .L79+4
+ 710 0026 0444     		add	r4, r4, r0
+ 711 0028 06F12007 		add	r7, r6, #32
+ 712              	.L63:
+ 713 002c 3546     		mov	r5, r6
+ 714 002e 0FCD     		ldmia	r5!, {r0, r1, r2, r3}
+ 715 0030 2060     		str	r0, [r4]	@ unaligned
+ 716 0032 6160     		str	r1, [r4, #4]	@ unaligned
+ 717 0034 A260     		str	r2, [r4, #8]	@ unaligned
+ 718 0036 E360     		str	r3, [r4, #12]	@ unaligned
+ 719 0038 2E46     		mov	r6, r5
+ 720 003a 1034     		adds	r4, r4, #16
+ 721 003c BD42     		cmp	r5, r7
+ 722 003e F5D1     		bne	.L63
+ 723 0040 2B88     		ldrh	r3, [r5]	@ unaligned
+ 724 0042 2380     		strh	r3, [r4]	@ unaligned
+ 102:Core/Src/tetris.c ****     
+ 103:Core/Src/tetris.c ****     for (int y = 0; y < BOARD_H; y++) {
+ 725              		.loc 1 103 5 is_stmt 1 view .LVU147
+ 726              	.LBB15:
+ 727              		.loc 1 103 10 view .LVU148
+ARM GAS  C:\Users\crist\AppData\Local\Temp\ccv7M0kn.s 			page 16
+
+
+ 728              	.LVL51:
+ 729              		.loc 1 103 14 is_stmt 0 view .LVU149
+ 730 0044 0027     		movs	r7, #0
+ 731              		.loc 1 103 5 view .LVU150
+ 732 0046 46E0     		b	.L64
+ 733              	.LVL52:
+ 734              	.L70:
+ 735              	.LBB16:
+ 736              	.LBB17:
+ 104:Core/Src/tetris.c ****         strcat(buf, "<!");
+ 105:Core/Src/tetris.c ****         for (int x = 0; x < BOARD_W; x++) {
+ 106:Core/Src/tetris.c ****             bool is_piece = false;
+ 737              		.loc 1 106 18 view .LVU151
+ 738 0048 0020     		movs	r0, #0
+ 739              	.LVL53:
+ 740              	.L66:
+ 107:Core/Src/tetris.c ****             if (x >= piece_x && x < piece_x + 4 && y >= piece_y && y < piece_y + 4) {
+ 108:Core/Src/tetris.c ****                 is_piece = get_shape_cell(piece_type, piece_rot, x - piece_x, y - piece_y);
+ 109:Core/Src/tetris.c ****             }
+ 110:Core/Src/tetris.c ****             strcat(buf, (board[y][x] || is_piece) ? "[]" : "  ");
+ 741              		.loc 1 110 13 is_stmt 1 view .LVU152
+ 742              		.loc 1 110 34 is_stmt 0 view .LVU153
+ 743 004a 3A4B     		ldr	r3, .L79+8
+ 744 004c 03EBC703 		add	r3, r3, r7, lsl #3
+ 745 0050 1B5D     		ldrb	r3, [r3, r4]	@ zero_extendqisi2
+ 746              		.loc 1 110 13 view .LVU154
+ 747 0052 43B9     		cbnz	r3, .L74
+ 748              		.loc 1 110 38 discriminator 2 view .LVU155
+ 749 0054 80B3     		cbz	r0, .L75
+ 750              		.loc 1 110 13 discriminator 3 view .LVU156
+ 751 0056 384E     		ldr	r6, .L79+12
+ 752 0058 06E0     		b	.L67
+ 753              	.LVL54:
+ 754              	.L71:
+ 106:Core/Src/tetris.c ****             if (x >= piece_x && x < piece_x + 4 && y >= piece_y && y < piece_y + 4) {
+ 755              		.loc 1 106 18 view .LVU157
+ 756 005a 0020     		movs	r0, #0
+ 757 005c F5E7     		b	.L66
+ 758              	.L72:
+ 106:Core/Src/tetris.c ****             if (x >= piece_x && x < piece_x + 4 && y >= piece_y && y < piece_y + 4) {
+ 759              		.loc 1 106 18 view .LVU158
+ 760 005e 0020     		movs	r0, #0
+ 761 0060 F3E7     		b	.L66
+ 762              	.L73:
+ 763 0062 0020     		movs	r0, #0
+ 764 0064 F1E7     		b	.L66
+ 765              	.LVL55:
+ 766              	.L74:
+ 767              		.loc 1 110 13 discriminator 3 view .LVU159
+ 768 0066 344E     		ldr	r6, .L79+12
+ 769              	.L67:
+ 770              		.loc 1 110 13 discriminator 6 view .LVU160
+ 771 0068 6D46     		mov	r5, sp
+ 772 006a 6846     		mov	r0, sp
+ 773              	.LVL56:
+ 774              		.loc 1 110 13 discriminator 6 view .LVU161
+ 775 006c FFF7FEFF 		bl	strlen
+ARM GAS  C:\Users\crist\AppData\Local\Temp\ccv7M0kn.s 			page 17
+
+
+ 776              	.LVL57:
+ 777 0070 2B18     		adds	r3, r5, r0
+ 778 0072 3188     		ldrh	r1, [r6]	@ unaligned
+ 779 0074 B278     		ldrb	r2, [r6, #2]	@ zero_extendqisi2
+ 780 0076 2DF80010 		strh	r1, [sp, r0]	@ unaligned
+ 781 007a 9A70     		strb	r2, [r3, #2]
+ 782              	.LBE17:
+ 105:Core/Src/tetris.c ****             bool is_piece = false;
+ 783              		.loc 1 105 39 is_stmt 1 discriminator 2 view .LVU162
+ 784 007c 0134     		adds	r4, r4, #1
+ 785              	.LVL58:
+ 786              	.L65:
+ 105:Core/Src/tetris.c ****             bool is_piece = false;
+ 787              		.loc 1 105 27 discriminator 1 view .LVU163
+ 788 007e 072C     		cmp	r4, #7
+ 789 0080 1CDC     		bgt	.L77
+ 790              	.LBB18:
+ 106:Core/Src/tetris.c ****             if (x >= piece_x && x < piece_x + 4 && y >= piece_y && y < piece_y + 4) {
+ 791              		.loc 1 106 13 view .LVU164
+ 792              	.LVL59:
+ 107:Core/Src/tetris.c ****             if (x >= piece_x && x < piece_x + 4 && y >= piece_y && y < piece_y + 4) {
+ 793              		.loc 1 107 13 view .LVU165
+ 107:Core/Src/tetris.c ****             if (x >= piece_x && x < piece_x + 4 && y >= piece_y && y < piece_y + 4) {
+ 794              		.loc 1 107 19 is_stmt 0 view .LVU166
+ 795 0082 2E4B     		ldr	r3, .L79+16
+ 796 0084 93F90020 		ldrsb	r2, [r3]
+ 107:Core/Src/tetris.c ****             if (x >= piece_x && x < piece_x + 4 && y >= piece_y && y < piece_y + 4) {
+ 797              		.loc 1 107 16 view .LVU167
+ 798 0088 A242     		cmp	r2, r4
+ 799 008a DDDC     		bgt	.L70
+ 107:Core/Src/tetris.c ****             if (x >= piece_x && x < piece_x + 4 && y >= piece_y && y < piece_y + 4) {
+ 800              		.loc 1 107 35 discriminator 1 view .LVU168
+ 801 008c D31C     		adds	r3, r2, #3
+ 107:Core/Src/tetris.c ****             if (x >= piece_x && x < piece_x + 4 && y >= piece_y && y < piece_y + 4) {
+ 802              		.loc 1 107 30 discriminator 1 view .LVU169
+ 803 008e A342     		cmp	r3, r4
+ 804 0090 E3DB     		blt	.L71
+ 107:Core/Src/tetris.c ****             if (x >= piece_x && x < piece_x + 4 && y >= piece_y && y < piece_y + 4) {
+ 805              		.loc 1 107 54 discriminator 2 view .LVU170
+ 806 0092 2B4B     		ldr	r3, .L79+20
+ 807 0094 93F90030 		ldrsb	r3, [r3]
+ 107:Core/Src/tetris.c ****             if (x >= piece_x && x < piece_x + 4 && y >= piece_y && y < piece_y + 4) {
+ 808              		.loc 1 107 49 discriminator 2 view .LVU171
+ 809 0098 BB42     		cmp	r3, r7
+ 810 009a E0DC     		bgt	.L72
+ 107:Core/Src/tetris.c ****             if (x >= piece_x && x < piece_x + 4 && y >= piece_y && y < piece_y + 4) {
+ 811              		.loc 1 107 70 discriminator 3 view .LVU172
+ 812 009c D91C     		adds	r1, r3, #3
+ 107:Core/Src/tetris.c ****             if (x >= piece_x && x < piece_x + 4 && y >= piece_y && y < piece_y + 4) {
+ 813              		.loc 1 107 65 discriminator 3 view .LVU173
+ 814 009e B942     		cmp	r1, r7
+ 815 00a0 DFDB     		blt	.L73
+ 108:Core/Src/tetris.c ****             }
+ 816              		.loc 1 108 17 is_stmt 1 view .LVU174
+ 108:Core/Src/tetris.c ****             }
+ 817              		.loc 1 108 28 is_stmt 0 view .LVU175
+ 818 00a2 FB1A     		subs	r3, r7, r3
+ARM GAS  C:\Users\crist\AppData\Local\Temp\ccv7M0kn.s 			page 18
+
+
+ 819 00a4 A21A     		subs	r2, r4, r2
+ 820 00a6 2749     		ldr	r1, .L79+24
+ 821 00a8 91F90010 		ldrsb	r1, [r1]
+ 822 00ac 2648     		ldr	r0, .L79+28
+ 823 00ae 90F90000 		ldrsb	r0, [r0]
+ 824 00b2 FFF7FEFF 		bl	get_shape_cell
+ 825              	.LVL60:
+ 108:Core/Src/tetris.c ****             }
+ 826              		.loc 1 108 28 view .LVU176
+ 827 00b6 C8E7     		b	.L66
+ 828              	.L75:
+ 829              		.loc 1 110 13 discriminator 4 view .LVU177
+ 830 00b8 244E     		ldr	r6, .L79+32
+ 831 00ba D5E7     		b	.L67
+ 832              	.LVL61:
+ 833              	.L77:
+ 834              		.loc 1 110 13 discriminator 4 view .LVU178
+ 835              	.LBE18:
+ 836              	.LBE16:
+ 111:Core/Src/tetris.c ****         }
+ 112:Core/Src/tetris.c ****         strcat(buf, "!>\r\n");
+ 837              		.loc 1 112 9 is_stmt 1 view .LVU179
+ 838 00bc 6C46     		mov	r4, sp
+ 839              	.LVL62:
+ 840              		.loc 1 112 9 is_stmt 0 view .LVU180
+ 841 00be 6846     		mov	r0, sp
+ 842 00c0 FFF7FEFF 		bl	strlen
+ 843              	.LVL63:
+ 844 00c4 0346     		mov	r3, r0
+ 845              		.loc 1 112 9 discriminator 1 view .LVU181
+ 846 00c6 2118     		adds	r1, r4, r0
+ 847 00c8 214A     		ldr	r2, .L79+36
+ 848 00ca 1068     		ldr	r0, [r2]
+ 849 00cc 4DF80300 		str	r0, [sp, r3]	@ unaligned
+ 850 00d0 1379     		ldrb	r3, [r2, #4]	@ zero_extendqisi2
+ 851 00d2 0B71     		strb	r3, [r1, #4]
+ 103:Core/Src/tetris.c ****         strcat(buf, "<!");
+ 852              		.loc 1 103 35 is_stmt 1 discriminator 2 view .LVU182
+ 853 00d4 0137     		adds	r7, r7, #1
+ 854              	.LVL64:
+ 855              	.L64:
+ 103:Core/Src/tetris.c ****         strcat(buf, "<!");
+ 856              		.loc 1 103 23 discriminator 1 view .LVU183
+ 857 00d6 132F     		cmp	r7, #19
+ 858 00d8 0CDC     		bgt	.L78
+ 104:Core/Src/tetris.c ****         for (int x = 0; x < BOARD_W; x++) {
+ 859              		.loc 1 104 9 view .LVU184
+ 860 00da 6C46     		mov	r4, sp
+ 861 00dc 6846     		mov	r0, sp
+ 862 00de FFF7FEFF 		bl	strlen
+ 863              	.LVL65:
+ 104:Core/Src/tetris.c ****         for (int x = 0; x < BOARD_W; x++) {
+ 864              		.loc 1 104 9 is_stmt 0 discriminator 1 view .LVU185
+ 865 00e2 2218     		adds	r2, r4, r0
+ 866 00e4 1B4B     		ldr	r3, .L79+40
+ 867 00e6 1988     		ldrh	r1, [r3]	@ unaligned
+ 868 00e8 9B78     		ldrb	r3, [r3, #2]	@ zero_extendqisi2
+ARM GAS  C:\Users\crist\AppData\Local\Temp\ccv7M0kn.s 			page 19
+
+
+ 869 00ea 2DF80010 		strh	r1, [sp, r0]	@ unaligned
+ 870 00ee 9370     		strb	r3, [r2, #2]
+ 105:Core/Src/tetris.c ****             bool is_piece = false;
+ 871              		.loc 1 105 9 is_stmt 1 view .LVU186
+ 872              	.LBB19:
+ 105:Core/Src/tetris.c ****             bool is_piece = false;
+ 873              		.loc 1 105 14 view .LVU187
+ 874              	.LVL66:
+ 105:Core/Src/tetris.c ****             bool is_piece = false;
+ 875              		.loc 1 105 18 is_stmt 0 view .LVU188
+ 876 00f0 0024     		movs	r4, #0
+ 105:Core/Src/tetris.c ****             bool is_piece = false;
+ 877              		.loc 1 105 9 view .LVU189
+ 878 00f2 C4E7     		b	.L65
+ 879              	.LVL67:
+ 880              	.L78:
+ 105:Core/Src/tetris.c ****             bool is_piece = false;
+ 881              		.loc 1 105 9 view .LVU190
+ 882              	.LBE19:
+ 883              	.LBE15:
+ 113:Core/Src/tetris.c ****     }
+ 114:Core/Src/tetris.c ****     strcat(buf, "<!========!>\r\n");
+ 884              		.loc 1 114 5 is_stmt 1 view .LVU191
+ 885 00f4 6C46     		mov	r4, sp
+ 886 00f6 6846     		mov	r0, sp
+ 887 00f8 FFF7FEFF 		bl	strlen
+ 888              	.LVL68:
+ 889 00fc 0646     		mov	r6, r0
+ 890              		.loc 1 114 5 is_stmt 0 discriminator 1 view .LVU192
+ 891 00fe 2518     		adds	r5, r4, r0
+ 892 0100 154B     		ldr	r3, .L79+44
+ 893 0102 07CB     		ldmia	r3!, {r0, r1, r2}
+ 894 0104 4DF80600 		str	r0, [sp, r6]	@ unaligned
+ 895 0108 6960     		str	r1, [r5, #4]	@ unaligned
+ 896 010a AA60     		str	r2, [r5, #8]	@ unaligned
+ 897 010c 1A88     		ldrh	r2, [r3]	@ unaligned
+ 898 010e 9B78     		ldrb	r3, [r3, #2]	@ zero_extendqisi2
+ 899 0110 AA81     		strh	r2, [r5, #12]	@ unaligned
+ 900 0112 AB73     		strb	r3, [r5, #14]
+ 115:Core/Src/tetris.c ****     
+ 116:Core/Src/tetris.c ****     // Standard hardware UART transmit
+ 117:Core/Src/tetris.c ****     HAL_UART_Transmit(&huart1, (uint8_t*)buf, strlen(buf), 100);
+ 901              		.loc 1 117 5 is_stmt 1 view .LVU193
+ 902              		.loc 1 117 47 is_stmt 0 view .LVU194
+ 903 0114 6846     		mov	r0, sp
+ 904 0116 FFF7FEFF 		bl	strlen
+ 905              	.LVL69:
+ 906              		.loc 1 117 5 discriminator 1 view .LVU195
+ 907 011a 6423     		movs	r3, #100
+ 908 011c 82B2     		uxth	r2, r0
+ 909 011e 6946     		mov	r1, sp
+ 910 0120 0E48     		ldr	r0, .L79+48
+ 911 0122 FFF7FEFF 		bl	HAL_UART_Transmit
+ 912              	.LVL70:
+ 118:Core/Src/tetris.c **** }
+ 913              		.loc 1 118 1 view .LVU196
+ 914 0126 0DF2044D 		addw	sp, sp, #1028
+ARM GAS  C:\Users\crist\AppData\Local\Temp\ccv7M0kn.s 			page 20
+
+
+ 915              	.LCFI7:
+ 916              		.cfi_def_cfa_offset 20
+ 917              		@ sp needed
+ 918 012a F0BD     		pop	{r4, r5, r6, r7, pc}
+ 919              	.LVL71:
+ 920              	.L80:
+ 921              		.loc 1 118 1 view .LVU197
+ 922              		.align	2
+ 923              	.L79:
+ 924 012c 48000000 		.word	.LC2
+ 925 0130 08000000 		.word	.LC3
+ 926 0134 00000000 		.word	board
+ 927 0138 00000000 		.word	.LC0
+ 928 013c 00000000 		.word	piece_x
+ 929 0140 00000000 		.word	piece_y
+ 930 0144 00000000 		.word	piece_rot
+ 931 0148 00000000 		.word	piece_type
+ 932 014c 04000000 		.word	.LC1
+ 933 0150 30000000 		.word	.LC5
+ 934 0154 2C000000 		.word	.LC4
+ 935 0158 38000000 		.word	.LC6
+ 936 015c 00000000 		.word	huart1
+ 937              		.cfi_endproc
+ 938              	.LFE74:
+ 940              		.section	.text.get_pixel,"ax",%progbits
+ 941              		.align	1
+ 942              		.global	get_pixel
+ 943              		.syntax unified
+ 944              		.thumb
+ 945              		.thumb_func
+ 947              	get_pixel:
+ 948              	.LVL72:
+ 949              	.LFB75:
+ 119:Core/Src/tetris.c **** 
+ 120:Core/Src/tetris.c **** // Helper to check if a specific pixel is filled (either board or falling piece)
+ 121:Core/Src/tetris.c **** bool get_pixel(int x, int y) {
+ 950              		.loc 1 121 30 is_stmt 1 view -0
+ 951              		.cfi_startproc
+ 952              		@ args = 0, pretend = 0, frame = 0
+ 953              		@ frame_needed = 0, uses_anonymous_args = 0
+ 122:Core/Src/tetris.c ****     if (x < 0 || x >= BOARD_W || y < 0 || y >= BOARD_H) return false;
+ 954              		.loc 1 122 5 view .LVU199
+ 955              		.loc 1 122 8 is_stmt 0 view .LVU200
+ 956 0000 0728     		cmp	r0, #7
+ 957 0002 27D8     		bhi	.L83
+ 958              		.loc 1 122 31 discriminator 2 view .LVU201
+ 959 0004 0029     		cmp	r1, #0
+ 960 0006 27DB     		blt	.L84
+ 961              		.loc 1 122 40 discriminator 4 view .LVU202
+ 962 0008 1329     		cmp	r1, #19
+ 963 000a 27DC     		bgt	.L85
+ 121:Core/Src/tetris.c ****     if (x < 0 || x >= BOARD_W || y < 0 || y >= BOARD_H) return false;
+ 964              		.loc 1 121 30 view .LVU203
+ 965 000c 08B5     		push	{r3, lr}
+ 966              	.LCFI8:
+ 967              		.cfi_def_cfa_offset 8
+ 968              		.cfi_offset 3, -8
+ARM GAS  C:\Users\crist\AppData\Local\Temp\ccv7M0kn.s 			page 21
+
+
+ 969              		.cfi_offset 14, -4
+ 123:Core/Src/tetris.c ****     if (board[y][x]) return true; // Static blocks
+ 970              		.loc 1 123 5 is_stmt 1 view .LVU204
+ 971              		.loc 1 123 17 is_stmt 0 view .LVU205
+ 972 000e 184B     		ldr	r3, .L96
+ 973 0010 03EBC103 		add	r3, r3, r1, lsl #3
+ 974 0014 1B5C     		ldrb	r3, [r3, r0]	@ zero_extendqisi2
+ 975              		.loc 1 123 8 view .LVU206
+ 976 0016 1BBB     		cbnz	r3, .L86
+ 124:Core/Src/tetris.c ****     
+ 125:Core/Src/tetris.c ****     // Check if falling piece occupies this pixel
+ 126:Core/Src/tetris.c ****     if (x >= piece_x && x < piece_x + 4 && y >= piece_y && y < piece_y + 4) {
+ 977              		.loc 1 126 5 is_stmt 1 view .LVU207
+ 978              		.loc 1 126 11 is_stmt 0 view .LVU208
+ 979 0018 164B     		ldr	r3, .L96+4
+ 980 001a 93F90020 		ldrsb	r2, [r3]
+ 981              		.loc 1 126 8 view .LVU209
+ 982 001e 8242     		cmp	r2, r0
+ 983 0020 20DC     		bgt	.L87
+ 984              		.loc 1 126 27 discriminator 1 view .LVU210
+ 985 0022 D31C     		adds	r3, r2, #3
+ 986              		.loc 1 126 22 discriminator 1 view .LVU211
+ 987 0024 8342     		cmp	r3, r0
+ 988 0026 1FDB     		blt	.L88
+ 989              		.loc 1 126 46 discriminator 2 view .LVU212
+ 990 0028 134B     		ldr	r3, .L96+8
+ 991 002a 93F90030 		ldrsb	r3, [r3]
+ 992              		.loc 1 126 41 discriminator 2 view .LVU213
+ 993 002e 8B42     		cmp	r3, r1
+ 994 0030 1CDC     		bgt	.L89
+ 995              		.loc 1 126 62 discriminator 3 view .LVU214
+ 996 0032 03F1030C 		add	ip, r3, #3
+ 997              		.loc 1 126 57 discriminator 3 view .LVU215
+ 998 0036 8C45     		cmp	ip, r1
+ 999 0038 01DA     		bge	.L95
+ 127:Core/Src/tetris.c ****         return get_shape_cell(piece_type, piece_rot, x - piece_x, y - piece_y);
+ 128:Core/Src/tetris.c ****     }
+ 129:Core/Src/tetris.c ****     return false;
+ 1000              		.loc 1 129 12 view .LVU216
+ 1001 003a 0020     		movs	r0, #0
+ 1002              	.LVL73:
+ 1003              		.loc 1 129 12 view .LVU217
+ 1004 003c 11E0     		b	.L82
+ 1005              	.LVL74:
+ 1006              	.L95:
+ 127:Core/Src/tetris.c ****         return get_shape_cell(piece_type, piece_rot, x - piece_x, y - piece_y);
+ 1007              		.loc 1 127 9 is_stmt 1 view .LVU218
+ 127:Core/Src/tetris.c ****         return get_shape_cell(piece_type, piece_rot, x - piece_x, y - piece_y);
+ 1008              		.loc 1 127 16 is_stmt 0 view .LVU219
+ 1009 003e CB1A     		subs	r3, r1, r3
+ 1010 0040 821A     		subs	r2, r0, r2
+ 1011 0042 0E49     		ldr	r1, .L96+12
+ 1012              	.LVL75:
+ 127:Core/Src/tetris.c ****         return get_shape_cell(piece_type, piece_rot, x - piece_x, y - piece_y);
+ 1013              		.loc 1 127 16 view .LVU220
+ 1014 0044 91F90010 		ldrsb	r1, [r1]
+ 1015 0048 0D48     		ldr	r0, .L96+16
+ARM GAS  C:\Users\crist\AppData\Local\Temp\ccv7M0kn.s 			page 22
+
+
+ 1016              	.LVL76:
+ 127:Core/Src/tetris.c ****         return get_shape_cell(piece_type, piece_rot, x - piece_x, y - piece_y);
+ 1017              		.loc 1 127 16 view .LVU221
+ 1018 004a 90F90000 		ldrsb	r0, [r0]
+ 1019 004e FFF7FEFF 		bl	get_shape_cell
+ 1020              	.LVL77:
+ 1021 0052 06E0     		b	.L82
+ 1022              	.LVL78:
+ 1023              	.L83:
+ 1024              	.LCFI9:
+ 1025              		.cfi_def_cfa_offset 0
+ 1026              		.cfi_restore 3
+ 1027              		.cfi_restore 14
+ 122:Core/Src/tetris.c ****     if (board[y][x]) return true; // Static blocks
+ 1028              		.loc 1 122 64 discriminator 5 view .LVU222
+ 1029 0054 0020     		movs	r0, #0
+ 1030              	.LVL79:
+ 122:Core/Src/tetris.c ****     if (board[y][x]) return true; // Static blocks
+ 1031              		.loc 1 122 64 discriminator 5 view .LVU223
+ 1032 0056 7047     		bx	lr
+ 1033              	.LVL80:
+ 1034              	.L84:
+ 122:Core/Src/tetris.c ****     if (board[y][x]) return true; // Static blocks
+ 1035              		.loc 1 122 64 discriminator 5 view .LVU224
+ 1036 0058 0020     		movs	r0, #0
+ 1037              	.LVL81:
+ 122:Core/Src/tetris.c ****     if (board[y][x]) return true; // Static blocks
+ 1038              		.loc 1 122 64 discriminator 5 view .LVU225
+ 1039 005a 7047     		bx	lr
+ 1040              	.LVL82:
+ 1041              	.L85:
+ 122:Core/Src/tetris.c ****     if (board[y][x]) return true; // Static blocks
+ 1042              		.loc 1 122 64 discriminator 5 view .LVU226
+ 1043 005c 0020     		movs	r0, #0
+ 1044              	.LVL83:
+ 130:Core/Src/tetris.c **** }
+ 1045              		.loc 1 130 1 view .LVU227
+ 1046 005e 7047     		bx	lr
+ 1047              	.LVL84:
+ 1048              	.L86:
+ 1049              	.LCFI10:
+ 1050              		.cfi_def_cfa_offset 8
+ 1051              		.cfi_offset 3, -8
+ 1052              		.cfi_offset 14, -4
+ 123:Core/Src/tetris.c ****     
+ 1053              		.loc 1 123 29 discriminator 1 view .LVU228
+ 1054 0060 0120     		movs	r0, #1
+ 1055              	.LVL85:
+ 1056              	.L82:
+ 1057              		.loc 1 130 1 view .LVU229
+ 1058 0062 08BD     		pop	{r3, pc}
+ 1059              	.LVL86:
+ 1060              	.L87:
+ 129:Core/Src/tetris.c **** }
+ 1061              		.loc 1 129 12 view .LVU230
+ 1062 0064 0020     		movs	r0, #0
+ 1063              	.LVL87:
+ARM GAS  C:\Users\crist\AppData\Local\Temp\ccv7M0kn.s 			page 23
+
+
+ 129:Core/Src/tetris.c **** }
+ 1064              		.loc 1 129 12 view .LVU231
+ 1065 0066 FCE7     		b	.L82
+ 1066              	.LVL88:
+ 1067              	.L88:
+ 129:Core/Src/tetris.c **** }
+ 1068              		.loc 1 129 12 view .LVU232
+ 1069 0068 0020     		movs	r0, #0
+ 1070              	.LVL89:
+ 129:Core/Src/tetris.c **** }
+ 1071              		.loc 1 129 12 view .LVU233
+ 1072 006a FAE7     		b	.L82
+ 1073              	.LVL90:
+ 1074              	.L89:
+ 129:Core/Src/tetris.c **** }
+ 1075              		.loc 1 129 12 view .LVU234
+ 1076 006c 0020     		movs	r0, #0
+ 1077              	.LVL91:
+ 129:Core/Src/tetris.c **** }
+ 1078              		.loc 1 129 12 view .LVU235
+ 1079 006e F8E7     		b	.L82
+ 1080              	.L97:
+ 1081              		.align	2
+ 1082              	.L96:
+ 1083 0070 00000000 		.word	board
+ 1084 0074 00000000 		.word	piece_x
+ 1085 0078 00000000 		.word	piece_y
+ 1086 007c 00000000 		.word	piece_rot
+ 1087 0080 00000000 		.word	piece_type
+ 1088              		.cfi_endproc
+ 1089              	.LFE75:
+ 1091              		.section	.text.Tetris_DrawLCD,"ax",%progbits
+ 1092              		.align	1
+ 1093              		.global	Tetris_DrawLCD
+ 1094              		.syntax unified
+ 1095              		.thumb
+ 1096              		.thumb_func
+ 1098              	Tetris_DrawLCD:
+ 1099              	.LFB76:
+ 131:Core/Src/tetris.c **** 
+ 132:Core/Src/tetris.c **** // Draw the game onto the sideways LCD using custom characters
+ 133:Core/Src/tetris.c **** void Tetris_DrawLCD(void) {
+ 1100              		.loc 1 133 27 is_stmt 1 view -0
+ 1101              		.cfi_startproc
+ 1102              		@ args = 0, pretend = 0, frame = 0
+ 1103              		@ frame_needed = 0, uses_anonymous_args = 0
+ 1104 0000 F8B5     		push	{r3, r4, r5, r6, r7, lr}
+ 1105              	.LCFI11:
+ 1106              		.cfi_def_cfa_offset 24
+ 1107              		.cfi_offset 3, -24
+ 1108              		.cfi_offset 4, -20
+ 1109              		.cfi_offset 5, -16
+ 1110              		.cfi_offset 6, -12
+ 1111              		.cfi_offset 7, -8
+ 1112              		.cfi_offset 14, -4
+ 134:Core/Src/tetris.c ****     for (int r = 0; r < 4; r++) {           
+ 1113              		.loc 1 134 5 view .LVU237
+ARM GAS  C:\Users\crist\AppData\Local\Temp\ccv7M0kn.s 			page 24
+
+
+ 1114              	.LBB20:
+ 1115              		.loc 1 134 10 view .LVU238
+ 1116              	.LVL92:
+ 1117              		.loc 1 134 14 is_stmt 0 view .LVU239
+ 1118 0002 0027     		movs	r7, #0
+ 1119              		.loc 1 134 5 view .LVU240
+ 1120 0004 23E0     		b	.L99
+ 1121              	.LVL93:
+ 1122              	.L101:
+ 1123              	.LBB21:
+ 1124              	.LBB22:
+ 135:Core/Src/tetris.c ****         lcd_put_cur(r, 0);                  
+ 136:Core/Src/tetris.c ****         for (int c = 0; c < 20; c++) {      
+ 137:Core/Src/tetris.c ****             
+ 138:Core/Src/tetris.c ****             int board_x = r * 2;            
+ 139:Core/Src/tetris.c ****             int board_y = c;                
+ 140:Core/Src/tetris.c ****             
+ 141:Core/Src/tetris.c ****             bool top_block = get_pixel(board_x, board_y);
+ 142:Core/Src/tetris.c ****             bool bot_block = get_pixel(board_x + 1, board_y);
+ 143:Core/Src/tetris.c ****             
+ 144:Core/Src/tetris.c ****             if (top_block && !bot_block) {
+ 145:Core/Src/tetris.c ****                 lcd_send_data(1);           // Top custom character
+ 146:Core/Src/tetris.c ****             } else if (!top_block && bot_block) {
+ 1125              		.loc 1 146 35 discriminator 1 view .LVU241
+ 1126 0006 C8B9     		cbnz	r0, .L109
+ 147:Core/Src/tetris.c ****                 lcd_send_data(2);           // Bottom custom character
+ 148:Core/Src/tetris.c ****             } else if (top_block && bot_block) {
+ 1127              		.loc 1 148 20 is_stmt 1 view .LVU242
+ 1128              		.loc 1 148 23 is_stmt 0 view .LVU243
+ 1129 0008 06B1     		cbz	r6, .L105
+ 1130              	.L102:
+ 1131              		.loc 1 148 34 discriminator 1 view .LVU244
+ 1132 000a D8B9     		cbnz	r0, .L110
+ 1133              	.L105:
+ 149:Core/Src/tetris.c ****                 lcd_send_data(3);           // Full block custom character
+ 150:Core/Src/tetris.c ****             } else {
+ 151:Core/Src/tetris.c ****                 lcd_send_data(' ');         // Empty space
+ 1134              		.loc 1 151 17 is_stmt 1 view .LVU245
+ 1135 000c 2020     		movs	r0, #32
+ 1136              	.LVL94:
+ 1137              		.loc 1 151 17 is_stmt 0 view .LVU246
+ 1138 000e FFF7FEFF 		bl	lcd_send_data
+ 1139              	.LVL95:
+ 1140              	.L103:
+ 1141              	.LBE22:
+ 136:Core/Src/tetris.c ****             
+ 1142              		.loc 1 136 34 is_stmt 1 discriminator 2 view .LVU247
+ 1143 0012 0134     		adds	r4, r4, #1
+ 1144              	.LVL96:
+ 1145              	.L100:
+ 136:Core/Src/tetris.c ****             
+ 1146              		.loc 1 136 27 discriminator 1 view .LVU248
+ 1147 0014 132C     		cmp	r4, #19
+ 1148 0016 19DC     		bgt	.L111
+ 1149              	.LBB23:
+ 138:Core/Src/tetris.c ****             int board_y = c;                
+ 1150              		.loc 1 138 13 view .LVU249
+ARM GAS  C:\Users\crist\AppData\Local\Temp\ccv7M0kn.s 			page 25
+
+
+ 138:Core/Src/tetris.c ****             int board_y = c;                
+ 1151              		.loc 1 138 17 is_stmt 0 view .LVU250
+ 1152 0018 7D00     		lsls	r5, r7, #1
+ 139:Core/Src/tetris.c ****             
+ 1153              		.loc 1 139 13 is_stmt 1 view .LVU251
+ 1154              	.LVL97:
+ 141:Core/Src/tetris.c ****             bool bot_block = get_pixel(board_x + 1, board_y);
+ 1155              		.loc 1 141 13 view .LVU252
+ 141:Core/Src/tetris.c ****             bool bot_block = get_pixel(board_x + 1, board_y);
+ 1156              		.loc 1 141 30 is_stmt 0 view .LVU253
+ 1157 001a 2146     		mov	r1, r4
+ 1158 001c 2846     		mov	r0, r5
+ 1159 001e FFF7FEFF 		bl	get_pixel
+ 1160              	.LVL98:
+ 1161 0022 0646     		mov	r6, r0
+ 1162              	.LVL99:
+ 142:Core/Src/tetris.c ****             
+ 1163              		.loc 1 142 13 is_stmt 1 view .LVU254
+ 142:Core/Src/tetris.c ****             
+ 1164              		.loc 1 142 30 is_stmt 0 view .LVU255
+ 1165 0024 2146     		mov	r1, r4
+ 1166 0026 681C     		adds	r0, r5, #1
+ 1167 0028 FFF7FEFF 		bl	get_pixel
+ 1168              	.LVL100:
+ 144:Core/Src/tetris.c ****                 lcd_send_data(1);           // Top custom character
+ 1169              		.loc 1 144 13 is_stmt 1 view .LVU256
+ 144:Core/Src/tetris.c ****                 lcd_send_data(1);           // Top custom character
+ 1170              		.loc 1 144 16 is_stmt 0 view .LVU257
+ 1171 002c 002E     		cmp	r6, #0
+ 1172 002e EAD0     		beq	.L101
+ 144:Core/Src/tetris.c ****                 lcd_send_data(1);           // Top custom character
+ 1173              		.loc 1 144 27 discriminator 1 view .LVU258
+ 1174 0030 0028     		cmp	r0, #0
+ 1175 0032 EAD1     		bne	.L102
+ 145:Core/Src/tetris.c ****             } else if (!top_block && bot_block) {
+ 1176              		.loc 1 145 17 is_stmt 1 view .LVU259
+ 1177 0034 0120     		movs	r0, #1
+ 1178              	.LVL101:
+ 145:Core/Src/tetris.c ****             } else if (!top_block && bot_block) {
+ 1179              		.loc 1 145 17 is_stmt 0 view .LVU260
+ 1180 0036 FFF7FEFF 		bl	lcd_send_data
+ 1181              	.LVL102:
+ 1182 003a EAE7     		b	.L103
+ 1183              	.LVL103:
+ 1184              	.L109:
+ 147:Core/Src/tetris.c ****             } else if (top_block && bot_block) {
+ 1185              		.loc 1 147 17 is_stmt 1 view .LVU261
+ 1186 003c 0220     		movs	r0, #2
+ 1187              	.LVL104:
+ 147:Core/Src/tetris.c ****             } else if (top_block && bot_block) {
+ 1188              		.loc 1 147 17 is_stmt 0 view .LVU262
+ 1189 003e FFF7FEFF 		bl	lcd_send_data
+ 1190              	.LVL105:
+ 1191 0042 E6E7     		b	.L103
+ 1192              	.LVL106:
+ 1193              	.L110:
+ 149:Core/Src/tetris.c ****             } else {
+ARM GAS  C:\Users\crist\AppData\Local\Temp\ccv7M0kn.s 			page 26
+
+
+ 1194              		.loc 1 149 17 is_stmt 1 view .LVU263
+ 1195 0044 0320     		movs	r0, #3
+ 1196              	.LVL107:
+ 149:Core/Src/tetris.c ****             } else {
+ 1197              		.loc 1 149 17 is_stmt 0 view .LVU264
+ 1198 0046 FFF7FEFF 		bl	lcd_send_data
+ 1199              	.LVL108:
+ 1200 004a E2E7     		b	.L103
+ 1201              	.LVL109:
+ 1202              	.L111:
+ 149:Core/Src/tetris.c ****             } else {
+ 1203              		.loc 1 149 17 view .LVU265
+ 1204              	.LBE23:
+ 1205              	.LBE21:
+ 134:Core/Src/tetris.c ****         lcd_put_cur(r, 0);                  
+ 1206              		.loc 1 134 29 is_stmt 1 discriminator 2 view .LVU266
+ 1207 004c 0137     		adds	r7, r7, #1
+ 1208              	.LVL110:
+ 1209              	.L99:
+ 134:Core/Src/tetris.c ****         lcd_put_cur(r, 0);                  
+ 1210              		.loc 1 134 23 discriminator 1 view .LVU267
+ 1211 004e 032F     		cmp	r7, #3
+ 1212 0050 05DC     		bgt	.L112
+ 135:Core/Src/tetris.c ****         for (int c = 0; c < 20; c++) {      
+ 1213              		.loc 1 135 9 view .LVU268
+ 1214 0052 0021     		movs	r1, #0
+ 1215 0054 3846     		mov	r0, r7
+ 1216 0056 FFF7FEFF 		bl	lcd_put_cur
+ 1217              	.LVL111:
+ 136:Core/Src/tetris.c ****             
+ 1218              		.loc 1 136 9 view .LVU269
+ 1219              	.LBB24:
+ 136:Core/Src/tetris.c ****             
+ 1220              		.loc 1 136 14 view .LVU270
+ 136:Core/Src/tetris.c ****             
+ 1221              		.loc 1 136 18 is_stmt 0 view .LVU271
+ 1222 005a 0024     		movs	r4, #0
+ 136:Core/Src/tetris.c ****             
+ 1223              		.loc 1 136 9 view .LVU272
+ 1224 005c DAE7     		b	.L100
+ 1225              	.LVL112:
+ 1226              	.L112:
+ 136:Core/Src/tetris.c ****             
+ 1227              		.loc 1 136 9 view .LVU273
+ 1228              	.LBE24:
+ 1229              	.LBE20:
+ 152:Core/Src/tetris.c ****             }
+ 153:Core/Src/tetris.c ****         }
+ 154:Core/Src/tetris.c ****     }
+ 155:Core/Src/tetris.c **** }...
+ 1230              		.loc 1 155 1 view .LVU274
+ 1231 005e F8BD     		pop	{r3, r4, r5, r6, r7, pc}
+ 1232              		.loc 1 155 1 view .LVU275
+ 1233              		.cfi_endproc
+ 1234              	.LFE76:
+ 1236              		.global	SHAPES
+ 1237              		.section	.rodata.SHAPES,"a"
+ARM GAS  C:\Users\crist\AppData\Local\Temp\ccv7M0kn.s 			page 27
+
+
+ 1238              		.align	2
+ 1241              	SHAPES:
+ 1242 0000 000F     		.short	3840
+ 1243 0002 2222     		.short	8738
+ 1244 0004 F000     		.short	240
+ 1245 0006 4444     		.short	17476
+ 1246 0008 C044     		.short	17600
+ 1247 000a 008E     		.short	-29184
+ 1248 000c 4064     		.short	25664
+ 1249 000e 200E     		.short	3616
+ 1250 0010 6044     		.short	17504
+ 1251 0012 800E     		.short	3712
+ 1252 0014 40C4     		.short	-15296
+ 1253 0016 002E     		.short	11776
+ 1254 0018 00CC     		.short	-13312
+ 1255 001a 00CC     		.short	-13312
+ 1256 001c 00CC     		.short	-13312
+ 1257 001e 00CC     		.short	-13312
+ 1258 0020 C006     		.short	1728
+ 1259 0022 408C     		.short	-29632
+ 1260 0024 006C     		.short	27648
+ 1261 0026 2046     		.short	17952
+ 1262 0028 400E     		.short	3648
+ 1263 002a 404C     		.short	19520
+ 1264 002c 004E     		.short	19968
+ 1265 002e 4046     		.short	17984
+ 1266 0030 600C     		.short	3168
+ 1267 0032 804C     		.short	19584
+ 1268 0034 00C6     		.short	-14848
+ 1269 0036 4026     		.short	9792
+ 1270              		.global	piece_rot
+ 1271              		.section	.bss.piece_rot,"aw",%nobits
+ 1274              	piece_rot:
+ 1275 0000 00       		.space	1
+ 1276              		.global	piece_type
+ 1277              		.section	.bss.piece_type,"aw",%nobits
+ 1280              	piece_type:
+ 1281 0000 00       		.space	1
+ 1282              		.global	piece_y
+ 1283              		.section	.bss.piece_y,"aw",%nobits
+ 1286              	piece_y:
+ 1287 0000 00       		.space	1
+ 1288              		.global	piece_x
+ 1289              		.section	.bss.piece_x,"aw",%nobits
+ 1292              	piece_x:
+ 1293 0000 00       		.space	1
+ 1294              		.global	last_fall_time
+ 1295              		.section	.bss.last_fall_time,"aw",%nobits
+ 1296              		.align	2
+ 1299              	last_fall_time:
+ 1300 0000 00000000 		.space	4
+ 1301              		.global	board
+ 1302              		.section	.bss.board,"aw",%nobits
+ 1303              		.align	2
+ 1306              	board:
+ 1307 0000 00000000 		.space	160
+ 1307      00000000 
+ARM GAS  C:\Users\crist\AppData\Local\Temp\ccv7M0kn.s 			page 28
+
+
+ 1307      00000000 
+ 1307      00000000 
+ 1307      00000000 
+ 1308              		.text
+ 1309              	.Letext0:
+ 1310              		.file 2 "C:\\ST\\STM32CubeCLT_1.21.0\\GNU-tools-for-STM32\\bin\\../lib/gcc/arm-none-eabi/14.3.1/..
+ 1311              		.file 3 "C:\\ST\\STM32CubeCLT_1.21.0\\GNU-tools-for-STM32\\bin\\../lib/gcc/arm-none-eabi/14.3.1/..
+ 1312              		.file 4 "Core/Inc/tetris.h"
+ 1313              		.file 5 "Drivers/CMSIS/Device/ST/STM32F1xx/Include/stm32f103xb.h"
+ 1314              		.file 6 "C:\\ST\\STM32CubeCLT_1.21.0\\GNU-tools-for-STM32\\bin\\../lib/gcc/arm-none-eabi/14.3.1/in
+ 1315              		.file 7 "Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_def.h"
+ 1316              		.file 8 "Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_dma.h"
+ 1317              		.file 9 "Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_uart.h"
+ 1318              		.file 10 "Core/Inc/i2c-lcd.h"
+ 1319              		.file 11 "C:\\ST\\STM32CubeCLT_1.21.0\\GNU-tools-for-STM32\\bin\\../lib/gcc/arm-none-eabi/14.3.1/.
+ 1320              		.file 12 "<built-in>"
+ 1321              		.file 13 "C:\\ST\\STM32CubeCLT_1.21.0\\GNU-tools-for-STM32\\bin\\../lib/gcc/arm-none-eabi/14.3.1/.
+ARM GAS  C:\Users\crist\AppData\Local\Temp\ccv7M0kn.s 			page 29
+
+
+DEFINED SYMBOLS
+                            *ABS*:00000000 tetris.c
+C:\Users\crist\AppData\Local\Temp\ccv7M0kn.s:19     .text.get_shape_cell:00000000 $t
+C:\Users\crist\AppData\Local\Temp\ccv7M0kn.s:25     .text.get_shape_cell:00000000 get_shape_cell
+C:\Users\crist\AppData\Local\Temp\ccv7M0kn.s:55     .text.get_shape_cell:0000001c $d
+C:\Users\crist\AppData\Local\Temp\ccv7M0kn.s:1241   .rodata.SHAPES:00000000 SHAPES
+C:\Users\crist\AppData\Local\Temp\ccv7M0kn.s:60     .text.check_collision:00000000 $t
+C:\Users\crist\AppData\Local\Temp\ccv7M0kn.s:66     .text.check_collision:00000000 check_collision
+C:\Users\crist\AppData\Local\Temp\ccv7M0kn.s:179    .text.check_collision:00000060 $d
+C:\Users\crist\AppData\Local\Temp\ccv7M0kn.s:1280   .bss.piece_type:00000000 piece_type
+C:\Users\crist\AppData\Local\Temp\ccv7M0kn.s:1306   .bss.board:00000000 board
+C:\Users\crist\AppData\Local\Temp\ccv7M0kn.s:185    .text.spawn_piece:00000000 $t
+C:\Users\crist\AppData\Local\Temp\ccv7M0kn.s:191    .text.spawn_piece:00000000 spawn_piece
+C:\Users\crist\AppData\Local\Temp\ccv7M0kn.s:254    .text.spawn_piece:00000048 $d
+C:\Users\crist\AppData\Local\Temp\ccv7M0kn.s:1274   .bss.piece_rot:00000000 piece_rot
+C:\Users\crist\AppData\Local\Temp\ccv7M0kn.s:1292   .bss.piece_x:00000000 piece_x
+C:\Users\crist\AppData\Local\Temp\ccv7M0kn.s:1286   .bss.piece_y:00000000 piece_y
+C:\Users\crist\AppData\Local\Temp\ccv7M0kn.s:264    .text.lock_piece:00000000 $t
+C:\Users\crist\AppData\Local\Temp\ccv7M0kn.s:270    .text.lock_piece:00000000 lock_piece
+C:\Users\crist\AppData\Local\Temp\ccv7M0kn.s:462    .text.lock_piece:000000a8 $d
+C:\Users\crist\AppData\Local\Temp\ccv7M0kn.s:471    .text.Tetris_Init:00000000 $t
+C:\Users\crist\AppData\Local\Temp\ccv7M0kn.s:477    .text.Tetris_Init:00000000 Tetris_Init
+C:\Users\crist\AppData\Local\Temp\ccv7M0kn.s:502    .text.Tetris_Init:00000014 $d
+C:\Users\crist\AppData\Local\Temp\ccv7M0kn.s:507    .text.Tetris_Update:00000000 $t
+C:\Users\crist\AppData\Local\Temp\ccv7M0kn.s:513    .text.Tetris_Update:00000000 Tetris_Update
+C:\Users\crist\AppData\Local\Temp\ccv7M0kn.s:534    .text.Tetris_Update:0000000c $d
+C:\Users\crist\AppData\Local\Temp\ccv7M0kn.s:538    .text.Tetris_Update:00000010 $t
+C:\Users\crist\AppData\Local\Temp\ccv7M0kn.s:639    .text.Tetris_Update:000000b0 $d
+C:\Users\crist\AppData\Local\Temp\ccv7M0kn.s:646    .rodata.Tetris_DrawTerminal.str1.4:00000000 $d
+C:\Users\crist\AppData\Local\Temp\ccv7M0kn.s:668    .text.Tetris_DrawTerminal:00000000 $t
+C:\Users\crist\AppData\Local\Temp\ccv7M0kn.s:674    .text.Tetris_DrawTerminal:00000000 Tetris_DrawTerminal
+C:\Users\crist\AppData\Local\Temp\ccv7M0kn.s:924    .text.Tetris_DrawTerminal:0000012c $d
+C:\Users\crist\AppData\Local\Temp\ccv7M0kn.s:941    .text.get_pixel:00000000 $t
+C:\Users\crist\AppData\Local\Temp\ccv7M0kn.s:947    .text.get_pixel:00000000 get_pixel
+C:\Users\crist\AppData\Local\Temp\ccv7M0kn.s:1083   .text.get_pixel:00000070 $d
+C:\Users\crist\AppData\Local\Temp\ccv7M0kn.s:1092   .text.Tetris_DrawLCD:00000000 $t
+C:\Users\crist\AppData\Local\Temp\ccv7M0kn.s:1098   .text.Tetris_DrawLCD:00000000 Tetris_DrawLCD
+C:\Users\crist\AppData\Local\Temp\ccv7M0kn.s:1238   .rodata.SHAPES:00000000 $d
+C:\Users\crist\AppData\Local\Temp\ccv7M0kn.s:1275   .bss.piece_rot:00000000 $d
+C:\Users\crist\AppData\Local\Temp\ccv7M0kn.s:1281   .bss.piece_type:00000000 $d
+C:\Users\crist\AppData\Local\Temp\ccv7M0kn.s:1287   .bss.piece_y:00000000 $d
+C:\Users\crist\AppData\Local\Temp\ccv7M0kn.s:1293   .bss.piece_x:00000000 $d
+C:\Users\crist\AppData\Local\Temp\ccv7M0kn.s:1299   .bss.last_fall_time:00000000 last_fall_time
+C:\Users\crist\AppData\Local\Temp\ccv7M0kn.s:1296   .bss.last_fall_time:00000000 $d
+C:\Users\crist\AppData\Local\Temp\ccv7M0kn.s:1303   .bss.board:00000000 $d
+
+UNDEFINED SYMBOLS
+rand
+memset
+strlen
+HAL_UART_Transmit
+huart1
+lcd_send_data
+lcd_put_cur

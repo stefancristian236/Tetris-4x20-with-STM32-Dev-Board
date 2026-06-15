@@ -68,6 +68,8 @@ Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Src/usbd_cdc.c \
 Core/Src/sysmem.c \
 Core/Src/syscalls.c \
 Core/Src/buttons.c \
+Core/Src/tetris.c\
+Core/Src/i2c-lcd.c\
 Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_i2c.c
 
 # ASM sources
@@ -199,7 +201,7 @@ $(BUILD_DIR)/%.bin: $(BUILD_DIR)/%.elf | $(BUILD_DIR)
 	$(BIN) $< $@	
 	
 $(BUILD_DIR):
-	mkdir $@		
+	mkdir -p $@
 
 #######################################
 # clean up

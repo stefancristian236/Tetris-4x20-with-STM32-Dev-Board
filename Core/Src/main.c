@@ -8,7 +8,8 @@
 /* USER CODE END Header */
 
 #include "main.h"
-#include "buttons.h"
+#include "tetris.h"
+#include "i2c-lcd.h"   
 #include <string.h>
 #include <stdio.h>
 
@@ -21,50 +22,83 @@ static void MX_GPIO_Init(void);
 static void MX_USART1_UART_Init(void);
 static void MX_TIM2_Init(void);
 static void MX_I2C1_Init(void);
+void Error_Handler(void);
 
+void load_custom_chars(void) {
+    uint8_t top[8]  = {0x1F, 0x1F, 0x1F, 0x1F, 0x00, 0x00, 0x00, 0x00};
+    uint8_t bot[8]  = {0x00, 0x00, 0x00, 0x00, 0x1F, 0x1F, 0x1F, 0x1F};
+    uint8_t full[8] = {0x1F, 0x1F, 0x1F, 0x1F, 0x1F, 0x1F, 0x1F, 0x1F};
 
-static void UART_Send(const char *msg)
-{
-    HAL_UART_Transmit(&huart1,
-                      (uint8_t *)msg,
-                      strlen(msg),
-                      HAL_MAX_DELAY);
+    lcd_send_cmd(0x40 + (1 * 8)); for(int i=0; i<8; i++) lcd_send_data(top[i]);
+    lcd_send_cmd(0x40 + (2 * 8)); for(int i=0; i<8; i++) lcd_send_data(bot[i]);
+    lcd_send_cmd(0x40 + (3 * 8)); for(int i=0; i<8; i++) lcd_send_data(full[i]);
+}
+
+TetrisCommand Read_Inputs() {
+    // Aligned to PA1-PA4 based on your MX_GPIO_Init
+    if (HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_1) == GPIO_PIN_RESET) return CMD_LEFT;
+    if (HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_2) == GPIO_PIN_RESET) return CMD_RIGHT;
+    if (HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_3) == GPIO_PIN_RESET) return CMD_ROTATE;
+    if (HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_4) == GPIO_PIN_RESET) return CMD_DOWN;
+    
+    return CMD_NONE;
+}
+
+uint8_t rx_data;
+
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
+    if (huart->Instance == USART1) {
+        if (rx_data == 'a' || rx_data == 'A') Tetris_Update(CMD_LEFT);
+        if (rx_data == 'd' || rx_data == 'D') Tetris_Update(CMD_RIGHT);
+        if (rx_data == 'w' || rx_data == 'W') Tetris_Update(CMD_ROTATE);
+        if (rx_data == 's' || rx_data == 'S') Tetris_Update(CMD_DOWN);
+        
+        Tetris_DrawTerminal();
+        Tetris_DrawLCD();
+        
+        HAL_UART_Receive_IT(&huart1, &rx_data, 1);
+    }
 }
 
 int main(void)
 {
-    HAL_Init();
-    SystemClock_Config();
+  HAL_Init();
+  SystemClock_Config();
+  MX_GPIO_Init();
+  MX_USART1_UART_Init(); 
+  MX_I2C1_Init();        
+  MX_TIM2_Init();
 
-    MX_GPIO_Init();
-    MX_USART1_UART_Init();
-    MX_TIM2_Init();
-    MX_I2C1_Init();
+  lcd_init();          
+  lcd_clear();
+  load_custom_chars();  
+  
+  Tetris_Init();        
+  last_fall_time = HAL_GetTick();
+  HAL_UART_Receive_IT(&huart1, &rx_data, 1);
 
-    HAL_Delay(500);
 
-butt_Init();
+  while (1)
+  {
+    HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13); 
 
-UART_Send("Controller ready!\r\n");
+    TetrisCommand input = Read_Inputs();
+    
+    if (input != CMD_NONE) {
+        Tetris_Update(input);
+        Tetris_DrawTerminal();
+        Tetris_DrawLCD();
+        HAL_Delay(150);
+    }
 
-while (1)
-{
-    if (read_butt_Left())
-        UART_Send("LEFT\r\n");
-
-    if (read_butt_Right())
-        UART_Send("RIGHT\r\n");
-
-    if (read_butt_Rotate())
-        UART_Send("ROTATE\r\n");
-
-    if (read_butt_Drop())
-        UART_Send("DROP\r\n");
-    UART_Send(HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_1) ? "1\r\n" : "0\r\n");
-    HAL_Delay(200);
-
-    HAL_Delay(10);
-}
+    if (HAL_GetTick() - last_fall_time >= FALL_DELAY_MS) {
+        Tetris_Update(CMD_DOWN);
+        Tetris_DrawTerminal();
+        Tetris_DrawLCD();
+        last_fall_time = HAL_GetTick();
+    }
+    HAL_Delay(50);
+  }
 }
 
 void SystemClock_Config(void)
@@ -166,9 +200,10 @@ static void MX_GPIO_Init(void)
     HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0 | GPIO_PIN_1, GPIO_PIN_RESET);
     HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_RESET);
 
-    GPIO_InitStruct.Pin  = GPIO_PIN_13;
-    GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-    GPIO_InitStruct.Pull = GPIO_PULLUP;
+    GPIO_InitStruct.Pin   = GPIO_PIN_13;
+    GPIO_InitStruct.Mode  = GPIO_MODE_OUTPUT_PP; 
+    GPIO_InitStruct.Pull  = GPIO_NOPULL;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
     HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
     GPIO_InitStruct.Pin  = GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_3 | GPIO_PIN_4;
@@ -194,10 +229,3 @@ void Error_Handler(void)
     __disable_irq();
     while (1) {}
 }
-
-#ifdef USE_FULL_ASSERT
-void assert_failed(uint8_t *file, uint32_t line)
-{
-    (void)file; (void)line;
-}
-#endif
