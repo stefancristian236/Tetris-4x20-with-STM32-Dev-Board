@@ -9,6 +9,7 @@
 
 #include "main.h"
 #include "tetris.h"
+#include "buttons.h"
 #include "i2c-lcd.h"   
 #include <string.h>
 #include <stdio.h>
@@ -34,28 +35,73 @@ void load_custom_chars(void) {
     lcd_send_cmd(0x40 + (3 * 8)); for(int i=0; i<8; i++) lcd_send_data(full[i]);
 }
 
-TetrisCommand Read_Inputs() {
-    // Aligned to PA1-PA4 based on your MX_GPIO_Init
-    if (HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_1) == GPIO_PIN_RESET) return CMD_LEFT;
-    if (HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_2) == GPIO_PIN_RESET) return CMD_RIGHT;
-    if (HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_3) == GPIO_PIN_RESET) return CMD_ROTATE;
-    if (HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_4) == GPIO_PIN_RESET) return CMD_DOWN;
+static TetrisCommand Read_Inputs(void) {
+    if (read_butt_Left()) return CMD_LEFT;
+    if (read_butt_Right()) return CMD_RIGHT;
+    if (read_butt_Rotate()) return CMD_ROTATE;
+    if (read_butt_Drop()) return CMD_DOWN;
     
     return CMD_NONE;
 }
 
 uint8_t rx_data;
+static volatile TetrisCommand pending_uart_cmd = CMD_NONE;
+
+static TetrisCommand Command_From_UART(uint8_t ch) {
+    switch (ch) {
+        case 'a':
+        case 'A':
+            return CMD_LEFT;
+        case 'd':
+        case 'D':
+            return CMD_RIGHT;
+        case 'w':
+        case 'W':
+            return CMD_ROTATE;
+        case 's':
+        case 'S':
+            return CMD_DOWN;
+        case 'r':
+        case 'R':
+            return CMD_RESTART;
+        default:
+            return CMD_NONE;
+    }
+}
+
+static TetrisCommand Pop_UART_Command(void) {
+    TetrisCommand cmd;
+
+    __disable_irq();
+    cmd = pending_uart_cmd;
+    pending_uart_cmd = CMD_NONE;
+    __enable_irq();
+
+    return cmd;
+}
+
+static void Apply_Command(TetrisCommand cmd, uint8_t *needs_draw) {
+    if (cmd == CMD_NONE) {
+        return;
+    }
+
+    Tetris_Update(cmd);
+    *needs_draw = 1;
+
+    if (cmd == CMD_DOWN || cmd == CMD_HARD_DROP ||
+        cmd == CMD_PAUSE || cmd == CMD_RESTART) {
+        last_fall_time = HAL_GetTick();
+    }
+}
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
     if (huart->Instance == USART1) {
-        if (rx_data == 'a' || rx_data == 'A') Tetris_Update(CMD_LEFT);
-        if (rx_data == 'd' || rx_data == 'D') Tetris_Update(CMD_RIGHT);
-        if (rx_data == 'w' || rx_data == 'W') Tetris_Update(CMD_ROTATE);
-        if (rx_data == 's' || rx_data == 'S') Tetris_Update(CMD_DOWN);
-        
-        Tetris_DrawTerminal();
-        Tetris_DrawLCD();
-        
+        TetrisCommand cmd = Command_From_UART(rx_data);
+
+        if (cmd != CMD_NONE) {
+            pending_uart_cmd = cmd;
+        }
+
         HAL_UART_Receive_IT(&huart1, &rx_data, 1);
     }
 }
@@ -65,6 +111,7 @@ int main(void)
   HAL_Init();
   SystemClock_Config();
   MX_GPIO_Init();
+  butt_Init();
   MX_USART1_UART_Init(); 
   MX_I2C1_Init();        
   MX_TIM2_Init();
@@ -74,30 +121,35 @@ int main(void)
   load_custom_chars();  
   
   Tetris_Init();        
-  last_fall_time = HAL_GetTick();
   HAL_UART_Receive_IT(&huart1, &rx_data, 1);
-
+  Tetris_DrawLCD();
 
   while (1)
   {
-    HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13); 
+    static uint32_t last_led_toggle = 0;
+    uint8_t needs_draw = 0;
+    uint32_t now = HAL_GetTick();
 
-    TetrisCommand input = Read_Inputs();
-    
-    if (input != CMD_NONE) {
-        Tetris_Update(input);
-        Tetris_DrawTerminal();
-        Tetris_DrawLCD();
-        HAL_Delay(150);
+    if ((now - last_led_toggle) >= 500U) {
+        HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
+        last_led_toggle = now;
     }
 
-    if (HAL_GetTick() - last_fall_time >= FALL_DELAY_MS) {
-        Tetris_Update(CMD_DOWN);
-        Tetris_DrawTerminal();
-        Tetris_DrawLCD();
-        last_fall_time = HAL_GetTick();
+    Apply_Command(Read_Inputs(), &needs_draw);
+    Apply_Command(Pop_UART_Command(), &needs_draw);
+
+    if (!Tetris_IsPaused() && !Tetris_IsGameOver() &&
+        (now - last_fall_time) >= Tetris_GetFallDelay()) {
+        Tetris_Update(CMD_FALL);
+        needs_draw = 1;
+        last_fall_time = now;
     }
-    HAL_Delay(50);
+
+    if (needs_draw) {
+        Tetris_DrawLCD();
+    }
+
+    HAL_Delay(10);
   }
 }
 
@@ -178,7 +230,7 @@ static void MX_TIM2_Init(void)
 static void MX_USART1_UART_Init(void)
 {
     huart1.Instance          = USART1;
-    huart1.Init.BaudRate     = 9600;
+    huart1.Init.BaudRate     = 115200;
     huart1.Init.WordLength   = UART_WORDLENGTH_8B;
     huart1.Init.StopBits     = UART_STOPBITS_1;
     huart1.Init.Parity       = UART_PARITY_NONE;

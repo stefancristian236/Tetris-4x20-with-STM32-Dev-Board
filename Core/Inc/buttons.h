@@ -5,18 +5,21 @@
 #include <stdint.h>
 
 #define BUTT_LEFT_PORT    GPIOA
-#define BUTT_LEFT_PIN     GPIO_PIN_1
+#define BUTT_LEFT_PIN     GPIO_PIN_4
 
 #define BUTT_RIGHT_PORT   GPIOA
-#define BUTT_RIGHT_PIN    GPIO_PIN_2
+#define BUTT_RIGHT_PIN    GPIO_PIN_1
 
 #define BUTT_ROTATE_PORT  GPIOA
 #define BUTT_ROTATE_PIN   GPIO_PIN_3
 
 #define BUTT_DROP_PORT    GPIOA
-#define BUTT_DROP_PIN     GPIO_PIN_4
+#define BUTT_DROP_PIN     GPIO_PIN_2
 
 #define DEBOUNCE_MS 20U
+#define BUTTON_REPEAT_START_MS 220U
+#define BUTTON_REPEAT_MS 90U
+#define BUTTON_DROP_REPEAT_MS 55U
 
 void butt_Init(void);
 

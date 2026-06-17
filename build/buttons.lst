@@ -1,4 +1,4 @@
-ARM GAS  C:\Users\crist\AppData\Local\Temp\cctB6XAD.s 			page 1
+ARM GAS  C:\Users\crist\AppData\Local\Temp\ccGR7zbf.s 			page 1
 
 
    1              		.cpu cortex-m3
@@ -58,7 +58,7 @@ ARM GAS  C:\Users\crist\AppData\Local\Temp\cctB6XAD.s 			page 1
   30:Core/Src/buttons.c **** {
   31:Core/Src/buttons.c ****     for (int i = 0; i < 4; i++)
   32:Core/Src/buttons.c ****     {
-ARM GAS  C:\Users\crist\AppData\Local\Temp\cctB6XAD.s 			page 2
+ARM GAS  C:\Users\crist\AppData\Local\Temp\ccGR7zbf.s 			page 2
 
 
   33:Core/Src/buttons.c ****         B[i].phase = BTN_IDLE;
@@ -118,7 +118,7 @@ ARM GAS  C:\Users\crist\AppData\Local\Temp\cctB6XAD.s 			page 1
   48:Core/Src/buttons.c ****     {
   49:Core/Src/buttons.c ****         case BTN_IDLE:
   50:Core/Src/buttons.c ****             if (pressed)
-ARM GAS  C:\Users\crist\AppData\Local\Temp\cctB6XAD.s 			page 3
+ARM GAS  C:\Users\crist\AppData\Local\Temp\ccGR7zbf.s 			page 3
 
 
   66              		.loc 1 50 13 is_stmt 1 view .LVU12
@@ -178,7 +178,7 @@ ARM GAS  C:\Users\crist\AppData\Local\Temp\cctB6XAD.s 			page 1
  105 0040 AA71     		strb	r2, [r5, #6]
   66:Core/Src/buttons.c ****                 b->t_repeat = now;
  106              		.loc 1 66 17 is_stmt 1 view .LVU31
-ARM GAS  C:\Users\crist\AppData\Local\Temp\cctB6XAD.s 			page 4
+ARM GAS  C:\Users\crist\AppData\Local\Temp\ccGR7zbf.s 			page 4
 
 
  107              		.loc 1 66 29 is_stmt 0 view .LVU32
@@ -238,7 +238,7 @@ ARM GAS  C:\Users\crist\AppData\Local\Temp\cctB6XAD.s 			page 1
  147              		.loc 1 80 64 discriminator 2 view .LVU51
  148 005e DC23     		movs	r3, #220
  149              	.L7:
-ARM GAS  C:\Users\crist\AppData\Local\Temp\cctB6XAD.s 			page 5
+ARM GAS  C:\Users\crist\AppData\Local\Temp\ccGR7zbf.s 			page 5
 
 
  150              	.LVL11:
@@ -298,7 +298,7 @@ ARM GAS  C:\Users\crist\AppData\Local\Temp\cctB6XAD.s 			page 1
  188 0078 FBE7     		b	.L2
  189              	.LVL17:
  190              	.L10:
-ARM GAS  C:\Users\crist\AppData\Local\Temp\cctB6XAD.s 			page 6
+ARM GAS  C:\Users\crist\AppData\Local\Temp\ccGR7zbf.s 			page 6
 
 
   92:Core/Src/buttons.c **** }
@@ -358,7 +358,7 @@ ARM GAS  C:\Users\crist\AppData\Local\Temp\cctB6XAD.s 			page 1
   35:Core/Src/buttons.c ****         B[i].repeating = 0;
  235              		.loc 1 35 23 is_stmt 0 view .LVU80
  236 0014 D960     		str	r1, [r3, #12]
-ARM GAS  C:\Users\crist\AppData\Local\Temp\cctB6XAD.s 			page 7
+ARM GAS  C:\Users\crist\AppData\Local\Temp\ccGR7zbf.s 			page 7
 
 
   36:Core/Src/buttons.c ****     }
@@ -418,7 +418,7 @@ ARM GAS  C:\Users\crist\AppData\Local\Temp\cctB6XAD.s 			page 1
  286              		.cfi_endproc
  287              	.LFE67:
  289              		.section	.text.read_butt_Right,"ax",%progbits
-ARM GAS  C:\Users\crist\AppData\Local\Temp\cctB6XAD.s 			page 8
+ARM GAS  C:\Users\crist\AppData\Local\Temp\ccGR7zbf.s 			page 8
 
 
  290              		.align	1
@@ -478,7 +478,7 @@ ARM GAS  C:\Users\crist\AppData\Local\Temp\cctB6XAD.s 			page 1
  345 0008 08BD     		pop	{r3, pc}
  346              	.L29:
  347 000a 00BF     		.align	2
-ARM GAS  C:\Users\crist\AppData\Local\Temp\cctB6XAD.s 			page 9
+ARM GAS  C:\Users\crist\AppData\Local\Temp\ccGR7zbf.s 			page 9
 
 
  348              	.L28:
@@ -520,7 +520,7 @@ ARM GAS  C:\Users\crist\AppData\Local\Temp\cctB6XAD.s 			page 1
  386              		.align	2
  389              	B:
  390 0000 00080140 		.word	1073809408
- 391 0004 0200     		.short	2
+ 391 0004 1000     		.short	16
  392 0006 00       		.byte	0
  393 0007 00       		.space	1
  394 0008 00000000 		.word	0
@@ -529,7 +529,7 @@ ARM GAS  C:\Users\crist\AppData\Local\Temp\cctB6XAD.s 			page 1
  397 0012 00       		.byte	0
  398 0013 00       		.space	1
  399 0014 00080140 		.word	1073809408
- 400 0018 0400     		.short	4
+ 400 0018 0200     		.short	2
  401 001a 00       		.byte	0
  402 001b 00       		.space	1
  403 001c 00000000 		.word	0
@@ -538,7 +538,7 @@ ARM GAS  C:\Users\crist\AppData\Local\Temp\cctB6XAD.s 			page 1
  406 0026 00       		.byte	0
  407 0027 00       		.space	1
  408 0028 00080140 		.word	1073809408
-ARM GAS  C:\Users\crist\AppData\Local\Temp\cctB6XAD.s 			page 10
+ARM GAS  C:\Users\crist\AppData\Local\Temp\ccGR7zbf.s 			page 10
 
 
  409 002c 0800     		.short	8
@@ -550,7 +550,7 @@ ARM GAS  C:\Users\crist\AppData\Local\Temp\cctB6XAD.s 			page 1
  415 003a 00       		.byte	0
  416 003b 00       		.space	1
  417 003c 00080140 		.word	1073809408
- 418 0040 1000     		.short	16
+ 418 0040 0400     		.short	4
  419 0042 00       		.byte	0
  420 0043 00       		.space	1
  421 0044 00000000 		.word	0
@@ -565,30 +565,30 @@ ARM GAS  C:\Users\crist\AppData\Local\Temp\cctB6XAD.s 			page 1
  430              		.file 4 "Drivers/CMSIS/Device/ST/STM32F1xx/Include/stm32f103xb.h"
  431              		.file 5 "Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_gpio.h"
  432              		.file 6 "Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal.h"
-ARM GAS  C:\Users\crist\AppData\Local\Temp\cctB6XAD.s 			page 11
+ARM GAS  C:\Users\crist\AppData\Local\Temp\ccGR7zbf.s 			page 11
 
 
 DEFINED SYMBOLS
                             *ABS*:00000000 buttons.c
-C:\Users\crist\AppData\Local\Temp\cctB6XAD.s:19     .text.poll:00000000 $t
-C:\Users\crist\AppData\Local\Temp\cctB6XAD.s:24     .text.poll:00000000 poll
-C:\Users\crist\AppData\Local\Temp\cctB6XAD.s:200    .text.butt_Init:00000000 $t
-C:\Users\crist\AppData\Local\Temp\cctB6XAD.s:206    .text.butt_Init:00000000 butt_Init
-C:\Users\crist\AppData\Local\Temp\cctB6XAD.s:253    .text.butt_Init:00000020 $d
-C:\Users\crist\AppData\Local\Temp\cctB6XAD.s:389    .data.B:00000000 B
-C:\Users\crist\AppData\Local\Temp\cctB6XAD.s:258    .text.read_butt_Left:00000000 $t
-C:\Users\crist\AppData\Local\Temp\cctB6XAD.s:264    .text.read_butt_Left:00000000 read_butt_Left
-C:\Users\crist\AppData\Local\Temp\cctB6XAD.s:285    .text.read_butt_Left:0000000c $d
-C:\Users\crist\AppData\Local\Temp\cctB6XAD.s:290    .text.read_butt_Right:00000000 $t
-C:\Users\crist\AppData\Local\Temp\cctB6XAD.s:296    .text.read_butt_Right:00000000 read_butt_Right
-C:\Users\crist\AppData\Local\Temp\cctB6XAD.s:317    .text.read_butt_Right:0000000c $d
-C:\Users\crist\AppData\Local\Temp\cctB6XAD.s:322    .text.read_butt_Rotate:00000000 $t
-C:\Users\crist\AppData\Local\Temp\cctB6XAD.s:328    .text.read_butt_Rotate:00000000 read_butt_Rotate
-C:\Users\crist\AppData\Local\Temp\cctB6XAD.s:349    .text.read_butt_Rotate:0000000c $d
-C:\Users\crist\AppData\Local\Temp\cctB6XAD.s:354    .text.read_butt_Drop:00000000 $t
-C:\Users\crist\AppData\Local\Temp\cctB6XAD.s:360    .text.read_butt_Drop:00000000 read_butt_Drop
-C:\Users\crist\AppData\Local\Temp\cctB6XAD.s:381    .text.read_butt_Drop:0000000c $d
-C:\Users\crist\AppData\Local\Temp\cctB6XAD.s:386    .data.B:00000000 $d
+C:\Users\crist\AppData\Local\Temp\ccGR7zbf.s:19     .text.poll:00000000 $t
+C:\Users\crist\AppData\Local\Temp\ccGR7zbf.s:24     .text.poll:00000000 poll
+C:\Users\crist\AppData\Local\Temp\ccGR7zbf.s:200    .text.butt_Init:00000000 $t
+C:\Users\crist\AppData\Local\Temp\ccGR7zbf.s:206    .text.butt_Init:00000000 butt_Init
+C:\Users\crist\AppData\Local\Temp\ccGR7zbf.s:253    .text.butt_Init:00000020 $d
+C:\Users\crist\AppData\Local\Temp\ccGR7zbf.s:389    .data.B:00000000 B
+C:\Users\crist\AppData\Local\Temp\ccGR7zbf.s:258    .text.read_butt_Left:00000000 $t
+C:\Users\crist\AppData\Local\Temp\ccGR7zbf.s:264    .text.read_butt_Left:00000000 read_butt_Left
+C:\Users\crist\AppData\Local\Temp\ccGR7zbf.s:285    .text.read_butt_Left:0000000c $d
+C:\Users\crist\AppData\Local\Temp\ccGR7zbf.s:290    .text.read_butt_Right:00000000 $t
+C:\Users\crist\AppData\Local\Temp\ccGR7zbf.s:296    .text.read_butt_Right:00000000 read_butt_Right
+C:\Users\crist\AppData\Local\Temp\ccGR7zbf.s:317    .text.read_butt_Right:0000000c $d
+C:\Users\crist\AppData\Local\Temp\ccGR7zbf.s:322    .text.read_butt_Rotate:00000000 $t
+C:\Users\crist\AppData\Local\Temp\ccGR7zbf.s:328    .text.read_butt_Rotate:00000000 read_butt_Rotate
+C:\Users\crist\AppData\Local\Temp\ccGR7zbf.s:349    .text.read_butt_Rotate:0000000c $d
+C:\Users\crist\AppData\Local\Temp\ccGR7zbf.s:354    .text.read_butt_Drop:00000000 $t
+C:\Users\crist\AppData\Local\Temp\ccGR7zbf.s:360    .text.read_butt_Drop:00000000 read_butt_Drop
+C:\Users\crist\AppData\Local\Temp\ccGR7zbf.s:381    .text.read_butt_Drop:0000000c $d
+C:\Users\crist\AppData\Local\Temp\ccGR7zbf.s:386    .data.B:00000000 $d
 
 UNDEFINED SYMBOLS
 HAL_GPIO_ReadPin
