@@ -22,7 +22,6 @@ static uint8_t next_piece = 0;
 static uint32_t score = 0;
 static uint16_t lines = 0;
 static uint8_t level = 1;
-static bool paused = false;
 static bool game_over = false;
 
 static const uint16_t SHAPES[7][4] = {
@@ -213,7 +212,6 @@ void Tetris_Init(void) {
     score = 0;
     lines = 0;
     level = 1;
-    paused = false;
     game_over = false;
     last_fall_time = HAL_GetTick();
     spawn_piece();
@@ -222,17 +220,6 @@ void Tetris_Init(void) {
 void Tetris_Update(TetrisCommand cmd) {
     if (cmd == CMD_RESTART) {
         Tetris_Init();
-        return;
-    }
-
-    if (cmd == CMD_PAUSE) {
-        if (!game_over) {
-            paused = !paused;
-        }
-        return;
-    }
-
-    if (game_over || paused) {
         return;
     }
 
@@ -278,7 +265,6 @@ void Tetris_GetStats(TetrisStats *stats) {
     stats->lines = lines;
     stats->level = level;
     stats->next_piece = next_piece;
-    stats->paused = paused;
     stats->game_over = game_over;
 }
 
@@ -290,10 +276,6 @@ uint32_t Tetris_GetFallDelay(void) {
     }
 
     return FALL_DELAY_MS - reduction;
-}
-
-bool Tetris_IsPaused(void) {
-    return paused;
 }
 
 bool Tetris_IsGameOver(void) {
